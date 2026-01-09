@@ -1,0 +1,2 @@
+PARKING_VIOLATIONS_IMPROVEMENT/*.csv filter=lfs diff=lfs merge=lfs -text
+PARKING_VIOLATIONS_IMPROVEMENT/.ipynb_checkpoints/*.csv filter=lfs diff=lfs merge=lfs -text
