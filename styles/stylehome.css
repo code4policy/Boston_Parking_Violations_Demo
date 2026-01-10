@@ -63,7 +63,7 @@ html {
     padding: 20px;
     max-width: 1200px;
     margin: 20px auto;
-    gap: 200px;
+    gap: 10px;
     box-sizing: border-box;
 }
 
@@ -76,7 +76,7 @@ html {
 
 }
 .content-section .image-container{
- margin-left: 750px;
+ margin-left: 100px;
  flex-shrink: 0;
 
 }
@@ -89,6 +89,4 @@ html {
   border: 3px solid #0b2a4a;
   border-radius: 8px;
 
-
-}
 
