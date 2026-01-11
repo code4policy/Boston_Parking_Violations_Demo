@@ -88,5 +88,15 @@ html {
   object-fit: cover;
   border: 3px solid #0b2a4a;
   border-radius: 8px;
+            
+}
 
+.disclaimer-container h3 {
+    text-align: center;           
+    font-size: 01.0em;             
+    font-family: Helvetica, sans-serif;  
+    color: #f94449;  
+    font-style: italic;
+    font-weight: normal;
+}
 
