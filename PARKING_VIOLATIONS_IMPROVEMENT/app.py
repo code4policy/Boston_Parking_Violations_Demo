@@ -188,14 +188,16 @@ st.set_page_config(page_title="Boston Violations Dashboard", layout="wide")
 from PIL import Image
 from pathlib import Path
 
-IMAGES_DIR = Path("/Users/argeniscontreras/development/PARKING_VIOLATIONS_IMPROVEMENT/images")
+BASE_DIR = Path(__file__).resolve().parent
+IMAGES_DIR = BASE_DIR / "images"
 
-header_img = Image.open(IMAGES_DIR / "header.png")  # change filename if needed
+header_img = Image.open(IMAGES_DIR / "header.png")
 st.image(header_img, use_container_width=True)
 st.markdown(
     "<h1 style='text-align: center;'>City of Boston Parking Violations</h1>",
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
+
 
 con = get_con()
 
