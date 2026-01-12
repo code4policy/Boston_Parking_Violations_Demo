@@ -216,7 +216,7 @@ with c4:
     metric = st.selectbox("Metric", options=["total", "avg_per_day"], index=0)
     top_n = st.slider("Top N", min_value=5, max_value=100, value=20, step=5)
 
-st.subheader("Map")
+st.subheader("City Map of Violations")
 
 df_map = q_map(con, date_start, date_end, violations)
 
