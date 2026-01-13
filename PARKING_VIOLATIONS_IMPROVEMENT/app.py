@@ -264,12 +264,14 @@ deck = pdk.Deck(
 )
 st.pydeck_chart(deck)
 # Legend for 5-bin color scale (quantiles)
+
+# Updated legend to use actual quantile values
 legend = [
-    ("Low ≤ 20", f"≤ {q20:.2f}", "rgb(173,216,230)"),  # light blue
-    ("Moderate-Low 20–55", f"{q20:.2f}–{q40:.2f}", "rgb(0,0,139)"),  # dark blue
-    ("Medium 55-120", f"{q40:.2f}–{q60:.2f}", "rgb(255,215,0)"),  # yellow
-    ("High 120-260", f"{q60:.2f}–{q80:.2f}", "rgb(255,140,0)"),  # orange
-    ("Very High > 260", f"> {q80:.2f}", "rgb(220,20,60)"),  # red
+    (f"Low (≤ {q20:.2f})", f"≤ {q20:.2f}", "rgb(173,216,230)"),  # light blue
+    (f"Moderate-Low ({q20:.2f}–{q40:.2f})", f"{q20:.2f}–{q40:.2f}", "rgb(0,0,139)"),  # dark blue
+    (f"Medium ({q40:.2f}–{q60:.2f})", f"{q40:.2f}–{q60:.2f}", "rgb(255,215,0)"),  # yellow
+    (f"High ({q60:.2f}–{q80:.2f})", f"{q60:.2f}–{q80:.2f}", "rgb(255,140,0)"),  # orange
+    (f"Very High (> {q80:.2f})", f"> {q80:.2f}", "rgb(220,20,60)"),  # red
 ]
 
 legend_html = "<div style='display:flex; gap:14px; align-items:center; justify-content:center; flex-wrap:wrap; font-size:13px; margin: 0 auto;'>"
@@ -278,7 +280,7 @@ for name, rng, color in legend:
     legend_html += (
         "<div style='display:flex; align-items:center; gap:6px;'>"
         f"<span style='width:14px; height:14px; background:{color}; display:inline-block; border:1px solid #333;'></span>"
-        f"<span>{name}: {rng}</span>"
+        f"<span>{name}</span>"
         "</div>"
     )
 legend_html += "</div>"
