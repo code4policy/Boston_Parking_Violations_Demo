@@ -4,3 +4,4 @@ numpy
 pyarrow
 pillow
 plotly
+duckdb
