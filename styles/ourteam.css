@@ -71,8 +71,8 @@ body {
 h1 {
   text-align: center;
   font-size: 2.25em;
-  color: #CC5500;
-  font-family: "Lucida Handwriting", cursive;
+  color: #0b2a4a;
+  font-family: "arial", cursive;
   margin: 0;
   padding: 20px 0;
 }
@@ -148,7 +148,7 @@ h1 {
   font-weight: 500;
 
   color: #ffffff;
-  background-color: #CC5500;
+  background-color: #0b2a4a;
   text-decoration: none;
 
   border-radius: 999px; /* pill shape */
