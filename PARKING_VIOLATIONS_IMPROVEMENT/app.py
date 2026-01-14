@@ -1,5 +1,8 @@
 from pathlib import Path
 from datetime import date
+import json
+import hashlib
+import colorsys
 import duckdb
 import pandas as pd
 import streamlit as st
@@ -15,6 +18,9 @@ REQUIRED_PARQUETS = [
     "agg_offender_hour_day.parquet",
     "tickets_2024_enriched.parquet",
 ]
+BOSTON_BOUNDARY_PATH = APP_DIR / "city_of_boston_outline_boundary_water_excluded.json"
+
+CARTO_DARK = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
 
 
 def check_required_files(base_dir: Path = APP_DIR) -> None:
@@ -31,6 +37,30 @@ def check_required_files(base_dir: Path = APP_DIR) -> None:
         "2) Store the Parquet files in a remote bucket and modify the app to download them at startup.\n"
     )
     st.stop()
+
+
+@st.cache_data(show_spinner=False)
+def load_geojson(path: str) -> dict:
+    # utf-8-sig handles files saved with a BOM
+    with open(path, "r", encoding="utf-8-sig") as f:
+        return json.load(f)
+
+
+def maybe_load_geojson(path: Path) -> dict | None:
+    if not path.exists():
+        return None
+
+    try:
+        geo = load_geojson(path.as_posix())
+    except Exception as e:
+        st.warning(f"Could not load GeoJSON from {path.name}: {e}")
+        return None
+
+    if not isinstance(geo, dict) or "type" not in geo:
+        st.warning(f"GeoJSON file {path.name} does not look valid.")
+        return None
+
+    return geo
 
 @st.cache_resource
 def get_con():
@@ -86,6 +116,94 @@ def q_map(con, date_start, date_end, violations):
         """
         params = [date_start, date_end]
     return con.execute(sql, params).fetchdf()
+
+
+def q_offender_points(
+    con,
+    date_start,
+    date_end,
+    violations,
+    deid_lpns=None,
+    limit=50000,
+    exclude_deid_lpns=None,
+):
+    """Return individual ticket points for one/many offenders.
+
+    - deid_lpns: None => all offenders
+                int => one offender
+                list[int] => many offenders
+    """
+
+    limit = int(limit)
+    if deid_lpns is None:
+        deid_lpns_list = None
+    elif isinstance(deid_lpns, (list, tuple, set)):
+        deid_lpns_list = [int(x) for x in deid_lpns]
+    else:
+        deid_lpns_list = [int(deid_lpns)]
+
+    exclude_list = None
+    if exclude_deid_lpns:
+        exclude_list = [int(x) for x in exclude_deid_lpns]
+
+    where = ["ticket_issue_date BETWEEN ? AND ?", "latitude IS NOT NULL", "longitude IS NOT NULL"]
+    params = [date_start, date_end]
+
+    if deid_lpns_list:
+        placeholders = ",".join(["?"] * len(deid_lpns_list))
+        where.append(f"deid_lpn IN ({placeholders})")
+        params.extend(deid_lpns_list)
+
+    if exclude_list:
+        placeholders = ",".join(["?"] * len(exclude_list))
+        where.append(f"deid_lpn NOT IN ({placeholders})")
+        params.extend(exclude_list)
+
+    if violations:
+        placeholders = ",".join(["?"] * len(violations))
+        where.append(f"violation_desc_long IN ({placeholders})")
+        params.extend(list(violations))
+
+    sql = f"""
+    SELECT
+      deid_lpn,
+      latitude AS lat,
+      longitude AS lon,
+      ticket_issue_date,
+      ticket_issue_time,
+      violation_desc_long,
+      location,
+      street_name,
+      street_no,
+      ticket_number
+    FROM tickets_enriched
+    WHERE {' AND '.join(where)}
+    LIMIT ?
+    """
+    params.append(limit)
+
+    df = con.execute(sql, params).fetchdf()
+    if df.empty:
+        return df
+
+    df["lat"] = pd.to_numeric(df["lat"], errors="coerce")
+    df["lon"] = pd.to_numeric(df["lon"], errors="coerce")
+    df = df.dropna(subset=["lat", "lon"]).copy()
+    df["feature_type"] = "Offender ticket"
+    return df
+
+
+def color_for_deid_lpn(deid_lpn: int, alpha: int = 180) -> list[int]:
+    """Stable, visually distinct-ish color per offender id.
+
+    Uses md5 hash -> hue; keeps saturation/value fixed for readability.
+    Returns [r, g, b, a].
+    """
+
+    h = hashlib.md5(str(int(deid_lpn)).encode("utf-8")).digest()
+    hue = int.from_bytes(h[:2], "big") / 65535.0
+    r, g, b = colorsys.hsv_to_rgb(hue, 0.70, 0.95)
+    return [int(r * 255), int(g * 255), int(b * 255), int(alpha)]
 
 def q_top_offenders(con, date_start, date_end, violations, top_n, metric="total"):
     top_n = int(top_n)
@@ -240,74 +358,280 @@ with c4:
 
 st.subheader("City Map of Violations")
 
-df_map = q_map(con, date_start, date_end, violations)
-
 value_col = "total_count" if metric == "total" else "avg_per_day"
-df_map = df_map.dropna(subset=["lat_bin", "lon_bin", value_col])
-# ---- Discrete 5-bin color scale based on quantiles
-v = df_map[value_col].astype(float)
 
-q20, q40, q60, q80 = v.quantile([0.2, 0.4, 0.6, 0.8]).tolist()
+with st.expander("Map layers", expanded=True):
+    st.caption("Basemap: Carto Dark (fixed)")
+    offender_filter = st.selectbox(
+        "Offenders",
+        options=[
+            "All offenders",
+            "Top 5",
+            "Top 10",
+            "Top 20",
+            "Top 30",
+            "Top 50",
+            "Enter specific deid_lpn",
+        ],
+        index=None,
+        placeholder="Choose an option",
+        help="Controls which offenders are plotted as individual ticket points.",
+    )
 
-def color_bin(x):
-    if x <= q20:
-        return [173, 216, 230, 160]   # light blue
-    elif x <= q40:
-        return [0, 0, 139, 160]       # dark blue
-    elif x <= q60:
-        return [255, 215, 0, 160]     # yellow
-    elif x <= q80:
-        return [255, 140, 0, 160]     # orange
+    include_deid_187 = st.checkbox(
+        "Include deid_lpn 187",
+        value=True,
+        help="Toggle this specific vehicle on/off in the offender points.",
+    )
+
+    offender_points_limit = st.slider(
+        "Max offender points",
+        min_value=500,
+        max_value=50000,
+        value=8000,
+        step=500,
+        help="Limits points drawn for performance.",
+    )
+
+selected_offenders = None
+if offender_filter == "Enter specific deid_lpn":
+    offender_text = st.text_input(
+        "Enter deid_lpn",
+        value="",
+        placeholder="e.g. 123456",
+    ).strip()
+    if offender_text:
+        if offender_text.isdigit():
+            selected_offenders = [int(offender_text)]
+        else:
+            st.warning("deid_lpn must be numeric.")
+elif offender_filter == "All offenders":
+    selected_offenders = None
+elif offender_filter in {"Top 5", "Top 10", "Top 20", "Top 30", "Top 50"}:
+    top_n_sel = int(offender_filter.split()[-1])
+    try:
+        df_off_preview = q_top_offenders(
+            con,
+            date_start,
+            date_end,
+            violations,
+            top_n=top_n_sel,
+            metric=metric,
+        )
+        selected_offenders = df_off_preview["deid_lpn"].tolist() if len(df_off_preview) else []
+    except Exception:
+        selected_offenders = []
+
+    if not selected_offenders:
+        st.info("No offenders available for the current filters.")
+        selected_offenders = None
+
+if offender_filter is not None and not include_deid_187:
+    # Remove 187 from any explicit selection list. For "All offenders" we exclude it in SQL.
+    if selected_offenders:
+        selected_offenders = [x for x in selected_offenders if int(x) != 187]
+        if not selected_offenders and offender_filter != "All offenders":
+            st.info("After excluding 187, there are no offenders to plot.")
+boundary_geojson = maybe_load_geojson(BOSTON_BOUNDARY_PATH)
+
+show_offender_layer = offender_filter is not None
+
+df_map = pd.DataFrame()
+if not show_offender_layer:
+    df_map = q_map(con, date_start, date_end, violations)
+    df_map = df_map.dropna(subset=["lat_bin", "lon_bin", value_col])
+
+    # Align tooltip fields across layers (avoid 'undefined')
+    if not df_map.empty:
+        df_map["lat"] = df_map["lat_bin"]
+        df_map["lon"] = df_map["lon_bin"]
+        df_map["deid_lpn"] = ""
+        df_map["ticket_issue_date"] = ""
+        df_map["ticket_issue_time"] = ""
+        df_map["location"] = ""
+        df_map["ticket_number"] = ""
+
+offender_points = pd.DataFrame()
+if offender_filter == "All offenders":
+    offender_points = q_offender_points(
+        con,
+        date_start,
+        date_end,
+        violations,
+        None,
+        limit=offender_points_limit,
+        exclude_deid_lpns=([187] if not include_deid_187 else None),
+    )
+elif selected_offenders:
+    offender_points = q_offender_points(
+        con,
+        date_start,
+        date_end,
+        violations,
+        selected_offenders,
+        limit=offender_points_limit,
+        exclude_deid_lpns=([187] if not include_deid_187 else None),
+    )
+
+if offender_filter is not None:
+    if not offender_points.empty:
+        # Align metric fields across layers (avoid 'undefined')
+        offender_points["total_count"] = ""
+        offender_points["avg_per_day"] = ""
+        offender_points[value_col] = ""
+        offender_points["fill_color"] = offender_points["deid_lpn"].apply(color_for_deid_lpn)
+    st.caption(f"Offender points shown: {len(offender_points):,}")
+
+if show_offender_layer and offender_filter is not None and offender_points.empty:
+    st.info("No offender ticket points found for the current filters.")
+
+if not df_map.empty:
+    df_map["feature_type"] = "Violation cell"
+
+layers = []
+
+if boundary_geojson is not None:
+    layers.append(
+        pdk.Layer(
+            "GeoJsonLayer",
+            data=boundary_geojson,
+            pickable=False,
+            stroked=True,
+            filled=True,
+            extruded=False,
+            wireframe=False,
+            # High-contrast styling (works on dark/light basemaps)
+            get_fill_color=[255, 255, 255, 10],
+            get_line_color=[255, 140, 0, 220],
+            line_width_min_pixels=1,
+        )
+    )
+
+if offender_filter is not None and not offender_points.empty:
+    offender_points = offender_points.copy()
+    offender_points["radius_px"] = 5
+    layers.append(
+        pdk.Layer(
+            "ScatterplotLayer",
+            data=offender_points,
+            get_position="[lon, lat]",
+            get_radius="radius_px",
+            radius_units="pixels",
+            pickable=True,
+            auto_highlight=True,
+            get_fill_color="fill_color",
+            get_line_color=[255, 255, 255, 200],
+            line_width_min_pixels=1,
+        )
+    )
+
+q20 = q40 = q60 = q80 = 0.0
+if not show_offender_layer:
+    if df_map.empty:
+        st.info("No violations found for the current filters.")
     else:
-        return [220, 20, 60, 160]     # red
+        # ---- Discrete 5-bin color scale based on quantiles
+        v = df_map[value_col].astype(float)
 
-df_map["fill_color"] = v.apply(color_bin)
+        q20, q40, q60, q80 = v.quantile([0.2, 0.4, 0.6, 0.8]).tolist()
 
-layer = pdk.Layer(
-    "ScatterplotLayer",
-    data=df_map,
-    get_position="[lon_bin, lat_bin]",
-    get_radius=25,
-    pickable=True,
-    auto_highlight=True,
-    get_fill_color="fill_color",
-)
+        def color_bin(x):
+            if x <= q20:
+                return [173, 216, 230, 160]   # light blue
+            elif x <= q40:
+                return [0, 0, 139, 160]       # dark blue
+            elif x <= q60:
+                return [255, 215, 0, 160]     # yellow
+            elif x <= q80:
+                return [255, 140, 0, 160]     # orange
+            else:
+                return [220, 20, 60, 160]     # red
+
+        df_map["fill_color"] = v.apply(color_bin)
+
+        layers.append(
+            pdk.Layer(
+                "ScatterplotLayer",
+                data=df_map,
+                get_position="[lon_bin, lat_bin]",
+                get_radius=25,
+                pickable=True,
+                auto_highlight=True,
+                get_fill_color="fill_color",
+            )
+        )
 
 view_state = pdk.ViewState(
-    latitude=float(df_map["lat_bin"].mean()) if len(df_map) else 42.3601,
-    longitude=float(df_map["lon_bin"].mean()) if len(df_map) else -71.0589,
-    zoom=11,
+    latitude=(
+        float(offender_points["lat"].mean())
+        if (show_offender_layer and not offender_points.empty)
+        else (float(df_map["lat_bin"].mean()) if len(df_map) else 42.3601)
+    ),
+    longitude=(
+        float(offender_points["lon"].mean())
+        if (show_offender_layer and not offender_points.empty)
+        else (float(df_map["lon_bin"].mean()) if len(df_map) else -71.0589)
+    ),
+    zoom=13 if (show_offender_layer and not offender_points.empty) else 11,
 )
+
+map_style = CARTO_DARK
 
 deck = pdk.Deck(
-    layers=[layer],
+    layers=layers,
     initial_view_state=view_state,
-    tooltip={"text": f"{value_col}: {{{value_col}}}"},
+    map_style=map_style,
+    tooltip={
+        "html": (
+            (
+                "<b>Offender ticket</b><br/>"
+                "deid_lpn: {deid_lpn}<br/>"
+                "Date: {ticket_issue_date}<br/>"
+                "Time: {ticket_issue_time}<br/>"
+                "Violation: {violation_desc_long}<br/>"
+                "Location: {location}<br/>"
+                "Ticket #: {ticket_number}"
+            )
+            if show_offender_layer
+            else (
+                "<b>Violation cell</b><br/>"
+                f"<b>{value_col}</b>: {{{value_col}}}<br/>"
+                "Total tickets: {total_count}<br/>"
+                "Avg/day: {avg_per_day}<br/>"
+                "Lat: {lat_bin}<br/>"
+                "Lon: {lon_bin}"
+            )
+        ),
+        "style": {
+            "backgroundColor": "rgba(0, 0, 0, 0.80)",
+            "color": "white",
+            "fontSize": "12px",
+        },
+    },
 )
 st.pydeck_chart(deck)
-# Legend for 5-bin color scale (quantiles)
+if not show_offender_layer:
+    # Legend for 5-bin color scale (quantiles)
+    legend = [
+        (f"Low (≤ {q20:.2f})", f"≤ {q20:.2f}", "rgb(173,216,230)"),  # light blue
+        (f"Moderate-Low ({q20:.2f}–{q40:.2f})", f"{q20:.2f}–{q40:.2f}", "rgb(0,0,139)"),  # dark blue
+        (f"Medium ({q40:.2f}–{q60:.2f})", f"{q40:.2f}–{q60:.2f}", "rgb(255,215,0)"),  # yellow
+        (f"High ({q60:.2f}–{q80:.2f})", f"{q60:.2f}–{q80:.2f}", "rgb(255,140,0)"),  # orange
+        (f"Very High (> {q80:.2f})", f"> {q80:.2f}", "rgb(220,20,60)"),  # red
+    ]
 
-# Updated legend to use actual quantile values
-legend = [
-    (f"Low (≤ {q20:.2f})", f"≤ {q20:.2f}", "rgb(173,216,230)"),  # light blue
-    (f"Moderate-Low ({q20:.2f}–{q40:.2f})", f"{q20:.2f}–{q40:.2f}", "rgb(0,0,139)"),  # dark blue
-    (f"Medium ({q40:.2f}–{q60:.2f})", f"{q40:.2f}–{q60:.2f}", "rgb(255,215,0)"),  # yellow
-    (f"High ({q60:.2f}–{q80:.2f})", f"{q60:.2f}–{q80:.2f}", "rgb(255,140,0)"),  # orange
-    (f"Very High (> {q80:.2f})", f"> {q80:.2f}", "rgb(220,20,60)"),  # red
-]
+    legend_html = "<div style='display:flex; gap:14px; align-items:center; justify-content:center; flex-wrap:wrap; font-size:13px; margin: 0 auto;'>"
+    legend_html += f"<div><b>{value_col}</b></div>"
+    for name, rng, color in legend:
+        legend_html += (
+            "<div style='display:flex; align-items:center; gap:6px;'>"
+            f"<span style='width:14px; height:14px; background:{color}; display:inline-block; border:1px solid #333;'></span>"
+            f"<span>{name}</span>"
+            "</div>"
+        )
+    legend_html += "</div>"
 
-legend_html = "<div style='display:flex; gap:14px; align-items:center; justify-content:center; flex-wrap:wrap; font-size:13px; margin: 0 auto;'>"
-legend_html += f"<div><b>{value_col}</b></div>"
-for name, rng, color in legend:
-    legend_html += (
-        "<div style='display:flex; align-items:center; gap:6px;'>"
-        f"<span style='width:14px; height:14px; background:{color}; display:inline-block; border:1px solid #333;'></span>"
-        f"<span>{name}</span>"
-        "</div>"
-    )
-legend_html += "</div>"
-
-st.markdown(legend_html, unsafe_allow_html=True)
+    st.markdown(legend_html, unsafe_allow_html=True)
 
 st.divider()
 
