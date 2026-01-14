@@ -7,6 +7,7 @@ import duckdb
 import pandas as pd
 import streamlit as st
 import pydeck as pdk
+import altair as alt
 
 APP_DIR = Path(__file__).resolve().parent
 
@@ -193,6 +194,142 @@ def q_offender_points(
     return df
 
 
+def q_offender_time_series(
+    con,
+    date_start,
+    date_end,
+    violations,
+    deid_lpns=None,
+    exclude_deid_lpns=None,
+):
+    """Daily ticket counts for the selected offenders.
+
+    - deid_lpns: None => all offenders (returns one series labeled "All offenders")
+                int => one offender
+                list[int] => many offenders
+    """
+
+    if deid_lpns is None:
+        deid_lpns_list = None
+    elif isinstance(deid_lpns, (list, tuple, set)):
+        deid_lpns_list = [int(x) for x in deid_lpns]
+    else:
+        deid_lpns_list = [int(deid_lpns)]
+
+    exclude_list = None
+    if exclude_deid_lpns:
+        exclude_list = [int(x) for x in exclude_deid_lpns]
+
+    where = ["ticket_issue_date BETWEEN ? AND ?"]
+    params = [date_start, date_end]
+
+    if deid_lpns_list:
+        placeholders = ",".join(["?"] * len(deid_lpns_list))
+        where.append(f"deid_lpn IN ({placeholders})")
+        params.extend(deid_lpns_list)
+
+    if exclude_list:
+        placeholders = ",".join(["?"] * len(exclude_list))
+        where.append(f"deid_lpn NOT IN ({placeholders})")
+        params.extend(exclude_list)
+
+    if violations:
+        placeholders = ",".join(["?"] * len(violations))
+        where.append(f"violation_desc_long IN ({placeholders})")
+        params.extend(list(violations))
+
+    if deid_lpns_list:
+        sql = f"""
+        SELECT
+          ticket_issue_date,
+          deid_lpn,
+          COUNT(*) AS tickets
+        FROM tickets_enriched
+        WHERE {' AND '.join(where)}
+        GROUP BY 1,2
+        ORDER BY 1,2
+        """
+    else:
+        sql = f"""
+        SELECT
+          ticket_issue_date,
+          'All offenders' AS deid_lpn,
+          COUNT(*) AS tickets
+        FROM tickets_enriched
+        WHERE {' AND '.join(where)}
+        GROUP BY 1
+        ORDER BY 1
+        """
+
+    df = con.execute(sql, params).fetchdf()
+    if df.empty:
+        return df
+    df["ticket_issue_date"] = pd.to_datetime(df["ticket_issue_date"], errors="coerce")
+    df = df.dropna(subset=["ticket_issue_date"]).copy()
+    return df
+
+
+def q_offender_time_heatmap(
+    con,
+    date_start,
+    date_end,
+    violations,
+    deid_lpns=None,
+    exclude_deid_lpns=None,
+):
+    """Hour-of-day x day-of-week heatmap for selected offenders (aggregated together)."""
+
+    if deid_lpns is None:
+        deid_lpns_list = None
+    elif isinstance(deid_lpns, (list, tuple, set)):
+        deid_lpns_list = [int(x) for x in deid_lpns]
+    else:
+        deid_lpns_list = [int(deid_lpns)]
+
+    exclude_list = None
+    if exclude_deid_lpns:
+        exclude_list = [int(x) for x in exclude_deid_lpns]
+
+    where = ["ticket_issue_date BETWEEN ? AND ?"]
+    params = [date_start, date_end]
+
+    if deid_lpns_list:
+        placeholders = ",".join(["?"] * len(deid_lpns_list))
+        where.append(f"deid_lpn IN ({placeholders})")
+        params.extend(deid_lpns_list)
+
+    if exclude_list:
+        placeholders = ",".join(["?"] * len(exclude_list))
+        where.append(f"deid_lpn NOT IN ({placeholders})")
+        params.extend(exclude_list)
+
+    if violations:
+        placeholders = ",".join(["?"] * len(violations))
+        where.append(f"violation_desc_long IN ({placeholders})")
+        params.extend(list(violations))
+
+    sql = f"""
+    WITH base AS (
+      SELECT
+        CAST(ticket_issue_date AS DATE) AS d,
+        TRY_CAST(SUBSTR(ticket_issue_time, 1, 2) AS INTEGER) AS issue_hour
+      FROM tickets_enriched
+      WHERE {' AND '.join(where)}
+    )
+    SELECT
+      STRFTIME(d, '%a') AS day_name,
+      CAST(STRFTIME(d, '%w') AS INTEGER) AS day_num,
+      issue_hour,
+      COUNT(*) AS tickets
+    FROM base
+    WHERE issue_hour BETWEEN 0 AND 23
+    GROUP BY 1,2,3
+    ORDER BY 2,3
+    """
+
+    return con.execute(sql, params).fetchdf()
+
+
 def color_for_deid_lpn(deid_lpn: int, alpha: int = 180) -> list[int]:
     """Stable, visually distinct-ish color per offender id.
 
@@ -204,6 +341,11 @@ def color_for_deid_lpn(deid_lpn: int, alpha: int = 180) -> list[int]:
     hue = int.from_bytes(h[:2], "big") / 65535.0
     r, g, b = colorsys.hsv_to_rgb(hue, 0.70, 0.95)
     return [int(r * 255), int(g * 255), int(b * 255), int(alpha)]
+
+
+def rgba_to_hex(rgba: list[int]) -> str:
+    r, g, b = [max(0, min(255, int(x))) for x in rgba[:3]]
+    return f"#{r:02x}{g:02x}{b:02x}"
 
 def q_top_offenders(con, date_start, date_end, violations, top_n, metric="total"):
     top_n = int(top_n)
@@ -334,9 +476,17 @@ IMAGES_DIR = APP_DIR / "images"
 header_img = Image.open(IMAGES_DIR / "header.png")
 st.image(header_img, use_container_width=True)
 st.markdown(
-    "<h1 style='text-align: center;'>City of Boston Parking Violations</h1>",
+    "<h1 style='text-align: center;'>City of Boston Parking Violations Analysis</h1>",
     unsafe_allow_html=True,
 )
+
+DISCLAIMER_TEXT = "Unofficial - Only intended as an academic exercise"
+DISCLAIMER_HTML = (
+    "<div style='text-align:center; font-weight:700; font-size:14px; color: inherit; margin-top: -6px; margin-bottom: 8px;'>"
+    + DISCLAIMER_TEXT
+    + "</div>"
+)
+st.markdown(DISCLAIMER_HTML, unsafe_allow_html=True)
 
 
 con = get_con()
@@ -356,14 +506,19 @@ with c4:
     metric = st.selectbox("Metric", options=["total", "avg_per_day"], index=0)
     top_n = st.slider("Top N", min_value=5, max_value=100, value=20, step=5)
 
-st.subheader("City Map of Violations")
+# (Removed: "City Map of Violations" header)
 
 value_col = "total_count" if metric == "total" else "avg_per_day"
 
-with st.expander("Map layers", expanded=True):
-    st.caption("Basemap: Carto Dark (fixed)")
+# Controls (no expander/frame)
+controls = st.container()
+with controls:
+    st.markdown(
+        "<div style='font-size:18px; font-weight:600; margin-bottom: 6px;'>Parking offenders</div>",
+        unsafe_allow_html=True,
+    )
     offender_filter = st.selectbox(
-        "Offenders",
+        "Parking offenders",
         options=[
             "All offenders",
             "Top 5",
@@ -376,10 +531,11 @@ with st.expander("Map layers", expanded=True):
         index=None,
         placeholder="Choose an option",
         help="Controls which offenders are plotted as individual ticket points.",
+        label_visibility="collapsed",
     )
 
     include_deid_187 = st.checkbox(
-        "Include deid_lpn 187",
+        "Include vehicles with no license plate",
         value=True,
         help="Toggle this specific vehicle on/off in the offender points.",
     )
@@ -432,9 +588,23 @@ if offender_filter is not None and not include_deid_187:
         selected_offenders = [x for x in selected_offenders if int(x) != 187]
         if not selected_offenders and offender_filter != "All offenders":
             st.info("After excluding 187, there are no offenders to plot.")
-boundary_geojson = maybe_load_geojson(BOSTON_BOUNDARY_PATH)
 
 show_offender_layer = offender_filter is not None
+
+# NOTE: Streamlit's st.pydeck_chart does not expose hover/click events from the map.
+# We approximate "linking" via an explicit focused offender selector that syncs map + charts.
+focus_offender = None
+if show_offender_layer and selected_offenders and len(selected_offenders) <= 50:
+    focus_choice = st.selectbox(
+        "Focus offender (sync map + charts)",
+        options=["(none)"] + [str(x) for x in selected_offenders],
+        index=0,
+        help="Fades other offenders on the map and in the trend chart.",
+    )
+    if focus_choice != "(none)":
+        focus_offender = int(focus_choice)
+
+boundary_geojson = maybe_load_geojson(BOSTON_BOUNDARY_PATH)
 
 df_map = pd.DataFrame()
 if not show_offender_layer:
@@ -479,7 +649,16 @@ if offender_filter is not None:
         offender_points["total_count"] = ""
         offender_points["avg_per_day"] = ""
         offender_points[value_col] = ""
-        offender_points["fill_color"] = offender_points["deid_lpn"].apply(color_for_deid_lpn)
+        if focus_offender is not None:
+            offender_points["fill_color"] = offender_points["deid_lpn"].apply(
+                lambda x: color_for_deid_lpn(int(x), alpha=(230 if int(x) == focus_offender else 40))
+            )
+            offender_points["radius_px"] = offender_points["deid_lpn"].apply(
+                lambda x: (8 if int(x) == focus_offender else 4)
+            )
+        else:
+            offender_points["fill_color"] = offender_points["deid_lpn"].apply(color_for_deid_lpn)
+            offender_points["radius_px"] = 5
     st.caption(f"Offender points shown: {len(offender_points):,}")
 
 if show_offender_layer and offender_filter is not None and offender_points.empty:
@@ -509,7 +688,8 @@ if boundary_geojson is not None:
 
 if offender_filter is not None and not offender_points.empty:
     offender_points = offender_points.copy()
-    offender_points["radius_px"] = 5
+    if "radius_px" not in offender_points.columns:
+        offender_points["radius_px"] = 5
     layers.append(
         pdk.Layer(
             "ScatterplotLayer",
@@ -609,7 +789,7 @@ deck = pdk.Deck(
         },
     },
 )
-st.pydeck_chart(deck)
+st.pydeck_chart(deck, use_container_width=True, height=700)
 if not show_offender_layer:
     # Legend for 5-bin color scale (quantiles)
     legend = [
@@ -632,6 +812,217 @@ if not show_offender_layer:
     legend_html += "</div>"
 
     st.markdown(legend_html, unsafe_allow_html=True)
+
+if show_offender_layer:
+    exclude_lpns_for_time = [187] if not include_deid_187 else None
+    df_ts = q_offender_time_series(
+        con,
+        date_start,
+        date_end,
+        violations,
+        deid_lpns=selected_offenders,
+        exclude_deid_lpns=exclude_lpns_for_time,
+    )
+    hm_focus = focus_offender if focus_offender is not None else None
+    df_hm = q_offender_time_heatmap(
+        con,
+        date_start,
+        date_end,
+        violations,
+        deid_lpns=([hm_focus] if hm_focus is not None else selected_offenders),
+        exclude_deid_lpns=exclude_lpns_for_time,
+    )
+
+    st.markdown(
+        "<div style='font-size:18px; font-weight:600; margin-top: 8px; margin-bottom: 6px;'>Time patterns</div>",
+        unsafe_allow_html=True,
+    )
+
+    # Keep the charts readable by default.
+    c_opts1, c_opts2, c_opts3 = st.columns([2, 2, 3])
+    with c_opts1:
+        trend_grain = st.selectbox(
+            "Trend granularity",
+            options=["Weekly", "Daily"],
+            index=0,
+            help="Weekly is less noisy and usually more insightful.",
+        )
+    with c_opts2:
+        top_k_series = st.selectbox(
+            "Lines shown",
+            options=[3, 5, 8, 12],
+            index=1,
+            help="Shows Total + Top K offenders + Others.",
+        )
+    with c_opts3:
+        st.caption("Tip: use Top 5/10 in Parking offenders for cleaner patterns.")
+
+    # ---- Summary metrics
+    df_ts_metrics = df_ts
+    if focus_offender is not None and not df_ts.empty:
+        df_ts_metrics = df_ts[df_ts["deid_lpn"].astype(str) == str(focus_offender)].copy()
+
+    if not df_ts_metrics.empty:
+        df_total_daily = (
+            df_ts_metrics.groupby("ticket_issue_date", as_index=False)["tickets"].sum().sort_values("ticket_issue_date")
+        )
+        total_tickets = int(df_total_daily["tickets"].sum())
+        peak_day_row = df_total_daily.loc[df_total_daily["tickets"].idxmax()]
+        peak_day = peak_day_row["ticket_issue_date"].date().isoformat()
+        peak_day_tickets = int(peak_day_row["tickets"])
+    else:
+        total_tickets = 0
+        peak_day = "—"
+        peak_day_tickets = 0
+
+    if not df_hm.empty:
+        peak_cell = df_hm.loc[df_hm["tickets"].idxmax()]
+        peak_cell_label = f"{peak_cell['day_name']} {int(peak_cell['issue_hour']):02d}:00"
+        peak_cell_tickets = int(peak_cell["tickets"])
+    else:
+        peak_cell_label = "—"
+        peak_cell_tickets = 0
+
+    m1, m2, m3 = st.columns(3)
+    m1.metric(
+        "Tickets (focused offender)" if focus_offender is not None else "Tickets (selected offenders)",
+        f"{total_tickets:,}",
+    )
+    m2.metric("Peak day", peak_day, delta=f"{peak_day_tickets:,} tickets")
+    m3.metric(
+        "Peak hour (focused)" if focus_offender is not None else "Peak hour",
+        peak_cell_label,
+        delta=f"{peak_cell_tickets:,} tickets",
+    )
+
+    c_ts, c_hm = st.columns(2)
+
+    with c_ts:
+        if df_ts.empty:
+            st.info("No time-series data available for the current offender filters.")
+        else:
+            df_plot = df_ts.copy()
+            df_plot["series"] = df_plot["deid_lpn"].astype(str)
+            df_plot["d"] = pd.to_datetime(df_plot["ticket_issue_date"], errors="coerce")
+            df_plot = df_plot.dropna(subset=["d"]).copy()
+
+            if trend_grain == "Weekly":
+                df_plot["d"] = df_plot["d"].dt.to_period("W-MON").apply(lambda p: p.start_time)
+
+            totals = df_plot.groupby("series", as_index=False)["tickets"].sum().sort_values("tickets", ascending=False)
+            top_series = totals.head(int(top_k_series))["series"].tolist()
+
+            focus_series = str(focus_offender) if focus_offender is not None else None
+            if focus_series and focus_series in set(df_plot["series"].tolist()):
+                # Ensure the focused offender is always shown as its own line.
+                top_series = list(dict.fromkeys([focus_series] + top_series))[: int(top_k_series)]
+
+            # Build Total + Top K + Others
+            df_top = df_plot[df_plot["series"].isin(top_series)].copy()
+            df_others = df_plot[~df_plot["series"].isin(top_series)].copy()
+            if not df_others.empty:
+                df_others = (
+                    df_others.groupby("d", as_index=False)["tickets"].sum().assign(series="Others")
+                )
+            df_total = df_plot.groupby("d", as_index=False)["tickets"].sum().assign(series="Total")
+
+            df_lines = pd.concat([df_top[["d", "tickets", "series"]], df_others, df_total], ignore_index=True)
+            df_lines = df_lines.groupby(["d", "series"], as_index=False)["tickets"].sum()
+
+            # Color mapping (stable per offender; fixed for Total/Others)
+            domain = []
+            rng = []
+            for s in sorted(set(df_lines["series"].tolist()), key=lambda x: (x not in {"Total", "Others"}, x)):
+                domain.append(s)
+                if s == "Total":
+                    rng.append("#ffffff")
+                elif s == "Others":
+                    rng.append("#9aa0a6")
+                else:
+                    try:
+                        rng.append(rgba_to_hex(color_for_deid_lpn(int(s))))
+                    except Exception:
+                        rng.append("#4e79a7")
+
+            base = alt.Chart(df_lines).encode(
+                x=alt.X("d:T", title=""),
+                y=alt.Y("tickets:Q", title="Tickets"),
+                color=alt.Color("series:N", scale=alt.Scale(domain=domain, range=rng), legend=alt.Legend(title="")),
+                tooltip=[
+                    alt.Tooltip("series:N", title="Series"),
+                    alt.Tooltip("d:T", title="Date"),
+                    alt.Tooltip("tickets:Q", title="Tickets", format=",")
+                ],
+            )
+
+            if focus_series:
+                fade = alt.condition(alt.datum.series == focus_series, alt.value(1.0), alt.value(0.08))
+                stroke_w = alt.condition(alt.datum.series == focus_series, alt.value(3.5), alt.value(1.5))
+                lines = base.mark_line(interpolate="monotone").encode(opacity=fade, strokeWidth=stroke_w)
+                chart = (
+                    lines
+                    .properties(height=280)
+                    .configure_view(strokeOpacity=0)
+                    .configure_axis(grid=True, gridOpacity=0.15)
+                    .configure_legend(orient="bottom")
+                )
+            else:
+                hover = alt.selection_point(fields=["series"], on="mouseover", nearest=True, empty=False)
+                base_h = base.encode(opacity=alt.condition(hover, alt.value(1.0), alt.value(0.30)))
+                lines = base_h.mark_line(interpolate="monotone", strokeWidth=2)
+                points = base_h.mark_circle(size=40).encode(opacity=alt.condition(hover, alt.value(1.0), alt.value(0.0))).add_params(hover)
+                chart = (
+                    (lines + points)
+                    .properties(height=280)
+                    .configure_view(strokeOpacity=0)
+                    .configure_axis(grid=True, gridOpacity=0.15)
+                    .configure_legend(orient="bottom")
+                )
+            st.altair_chart(chart, use_container_width=True)
+
+    with c_hm:
+        if df_hm.empty:
+            st.info("No heatmap data available for the current offender filters.")
+        else:
+            day_order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+            st.vega_lite_chart(
+                df_hm,
+                {
+                    "mark": {"type": "rect"},
+                    "encoding": {
+                        "x": {
+                            "field": "issue_hour",
+                            "type": "ordinal",
+                            "title": "Hour of day",
+                            "sort": "ascending",
+                        },
+                        "y": {
+                            "field": "day_name",
+                            "type": "ordinal",
+                            "title": "Day of week",
+                            "sort": day_order,
+                        },
+                        "color": {
+                            "field": "tickets",
+                            "type": "quantitative",
+                            "title": "Tickets",
+                            "scale": {"scheme": "viridis"},
+                        },
+                        "tooltip": [
+                            {"field": "day_name", "type": "nominal", "title": "Day"},
+                            {"field": "issue_hour", "type": "ordinal", "title": "Hour"},
+                            {"field": "tickets", "type": "quantitative", "title": "Tickets"},
+                        ],
+                    },
+                    "width": "container",
+                    "height": 280,
+                    "config": {
+                        "view": {"stroke": None},
+                        "axis": {"grid": True, "gridOpacity": 0.15},
+                    },
+                },
+                use_container_width=True,
+            )
 
 st.divider()
 
@@ -662,4 +1053,12 @@ if selected is not None and selected != "":
     df_hour = q_offender_hour_profile(con, selected, date_start, date_end)
     st.write("Hourly profile")
     st.dataframe(df_hour, use_container_width=True, height=220)
+
+st.divider()
+st.markdown(
+    "<div style='text-align:center; font-weight:700; font-size:14px; color: inherit; margin-top: 6px; margin-bottom: 0px;'>"
+    + DISCLAIMER_TEXT
+    + "</div>",
+    unsafe_allow_html=True,
+)
 

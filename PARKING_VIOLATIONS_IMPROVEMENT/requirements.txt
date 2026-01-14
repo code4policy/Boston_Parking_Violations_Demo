@@ -5,3 +5,4 @@ pyarrow
 pillow
 plotly
 duckdb
+altair
