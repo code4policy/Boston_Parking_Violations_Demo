@@ -142,9 +142,10 @@ body {
 
 /* Top Navigation Bar */
 .top-nav {
+    margin-right: 200px;
   background-color: transparent;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: center;
   gap: 30px;
   padding: 0;
@@ -188,7 +189,8 @@ body {
 
 /* utility to shift visible area down ~20px */
 .header-image--shift-down{
-  transform: translateY(-20px);
+  object-position: center 25%;
+  transform: none;
 }
 
 /* helper classes to choose which part of the image is visible */
