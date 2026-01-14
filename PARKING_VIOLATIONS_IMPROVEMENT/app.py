@@ -1,7 +1,5 @@
 from pathlib import Path
 from datetime import date
-
-import plotly.express as px
 import duckdb
 import pandas as pd
 import streamlit as st
@@ -9,8 +7,34 @@ import pydeck as pdk
 
 APP_DIR = Path(__file__).resolve().parent
 
+REQUIRED_PARQUETS = [
+    "agg_map_grid_day_norm.parquet",
+    "agg_offenders_day_norm.parquet",
+    "agg_streets_day_norm.parquet",
+    "agg_offender_violation_day.parquet",
+    "agg_offender_hour_day.parquet",
+    "tickets_2024_enriched.parquet",
+]
+
+
+def check_required_files(base_dir: Path = APP_DIR) -> None:
+    missing = [name for name in REQUIRED_PARQUETS if not (base_dir / name).exists()]
+    if not missing:
+        return
+
+    st.error(
+        "Missing required data files. This app expects pre-built Parquet artifacts in the repo (or mounted storage).\n\n"
+        "Missing:\n- "
+        + "\n- ".join(missing)
+        + "\n\nHow to fix:\n"
+        "1) Run PARQUET.ipynb up through the parquet-write cells to generate these files locally, then deploy them with the app; or\n"
+        "2) Store the Parquet files in a remote bucket and modify the app to download them at startup.\n"
+    )
+    st.stop()
+
 @st.cache_resource
 def get_con():
+    check_required_files(APP_DIR)
     con = duckdb.connect()
 
     con.execute(f"CREATE OR REPLACE VIEW agg_map_grid_day_norm AS SELECT * FROM '{(APP_DIR / 'agg_map_grid_day_norm.parquet').as_posix()}'")
@@ -186,10 +210,8 @@ def q_offender_hour_profile(con, deid_lpn, date_start, date_end):
 
 st.set_page_config(page_title="Boston Violations Dashboard", layout="wide")
 from PIL import Image
-from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent
-IMAGES_DIR = BASE_DIR / "images"
+IMAGES_DIR = APP_DIR / "images"
 
 header_img = Image.open(IMAGES_DIR / "header.png")
 st.image(header_img, use_container_width=True)
