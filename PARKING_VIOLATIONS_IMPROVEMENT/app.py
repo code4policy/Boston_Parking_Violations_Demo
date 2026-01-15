@@ -705,6 +705,16 @@ with c4:
     metric = st.selectbox("Metric", options=["total", "avg_per_day"], index=0)
     top_n = st.slider("Top N", min_value=5, max_value=100, value=20, step=5)
 
+# Map visualization toggle
+map_viz = st.radio(
+    "Map visualization",
+    options=["Map", "Heatmap"],
+    index=0,
+    horizontal=True,
+    key="map_visualization_mode",
+    help="Switch between the existing map style and a heatmap layer.",
+)
+
 # (Removed: "City Map of Violations" header)
 
 value_col = "total_count" if metric == "total" else "avg_per_day"
@@ -901,56 +911,82 @@ if offender_filter is not None and not offender_points.empty:
     offender_points = offender_points.copy()
     if "radius_px" not in offender_points.columns:
         offender_points["radius_px"] = 5
-    layers.append(
-        pdk.Layer(
-            "ScatterplotLayer",
-            data=offender_points,
-            get_position="[lon, lat]",
-            get_radius="radius_px",
-            radius_units="pixels",
-            pickable=True,
-            auto_highlight=True,
-            get_fill_color="fill_color",
-            get_line_color=[255, 255, 255, 200],
-            line_width_min_pixels=1,
+    if map_viz == "Heatmap":
+        layers.append(
+            pdk.Layer(
+                "HeatmapLayer",
+                data=offender_points,
+                get_position="[lon, lat]",
+                get_weight=1,
+                radius_pixels=35,
+                opacity=0.85,
+                pickable=False,
+            )
         )
-    )
+    else:
+        layers.append(
+            pdk.Layer(
+                "ScatterplotLayer",
+                data=offender_points,
+                get_position="[lon, lat]",
+                get_radius="radius_px",
+                radius_units="pixels",
+                pickable=True,
+                auto_highlight=True,
+                get_fill_color="fill_color",
+                get_line_color=[255, 255, 255, 200],
+                line_width_min_pixels=1,
+            )
+        )
 
 q20 = q40 = q60 = q80 = 0.0
 if not show_offender_layer:
     if df_map.empty:
         st.info("No violations found for the current filters.")
     else:
-        # ---- Discrete 5-bin color scale based on quantiles
-        v = df_map[value_col].astype(float)
-
-        q20, q40, q60, q80 = v.quantile([0.2, 0.4, 0.6, 0.8]).tolist()
-
-        def color_bin(x):
-            if x <= q20:
-                return [173, 216, 230, 160]   # light blue
-            elif x <= q40:
-                return [0, 0, 139, 160]       # dark blue
-            elif x <= q60:
-                return [255, 215, 0, 160]     # yellow
-            elif x <= q80:
-                return [255, 140, 0, 160]     # orange
-            else:
-                return [220, 20, 60, 160]     # red
-
-        df_map["fill_color"] = v.apply(color_bin)
-
-        layers.append(
-            pdk.Layer(
-                "ScatterplotLayer",
-                data=df_map,
-                get_position="[lon_bin, lat_bin]",
-                get_radius=25,
-                pickable=True,
-                auto_highlight=True,
-                get_fill_color="fill_color",
+        if map_viz == "Heatmap":
+            layers.append(
+                pdk.Layer(
+                    "HeatmapLayer",
+                    data=df_map,
+                    get_position="[lon_bin, lat_bin]",
+                    get_weight=value_col,
+                    radius_pixels=45,
+                    opacity=0.85,
+                    pickable=False,
+                )
             )
-        )
+        else:
+            # ---- Discrete 5-bin color scale based on quantiles
+            v = df_map[value_col].astype(float)
+
+            q20, q40, q60, q80 = v.quantile([0.2, 0.4, 0.6, 0.8]).tolist()
+
+            def color_bin(x):
+                if x <= q20:
+                    return [173, 216, 230, 160]   # light blue
+                elif x <= q40:
+                    return [0, 0, 139, 160]       # dark blue
+                elif x <= q60:
+                    return [255, 215, 0, 160]     # yellow
+                elif x <= q80:
+                    return [255, 140, 0, 160]     # orange
+                else:
+                    return [220, 20, 60, 160]     # red
+
+            df_map["fill_color"] = v.apply(color_bin)
+
+            layers.append(
+                pdk.Layer(
+                    "ScatterplotLayer",
+                    data=df_map,
+                    get_position="[lon_bin, lat_bin]",
+                    get_radius=25,
+                    pickable=True,
+                    auto_highlight=True,
+                    get_fill_color="fill_color",
+                )
+            )
 
 view_state = pdk.ViewState(
     latitude=(
@@ -1001,7 +1037,7 @@ deck = pdk.Deck(
     },
 )
 st.pydeck_chart(deck, use_container_width=True, height=700)
-if not show_offender_layer:
+if not show_offender_layer and map_viz != "Heatmap":
     # Legend for 5-bin color scale (quantiles)
     legend = [
         (f"Low (≤ {q20:.2f})", f"≤ {q20:.2f}", "rgb(173,216,230)"),  # light blue
@@ -1306,10 +1342,6 @@ if selected is not None and selected != "":
     df_break = q_offender_violation_breakdown(con, selected, date_start, date_end, violations)
     st.write("Violation breakdown")
     st.dataframe(df_break, use_container_width=True, height=220)
-
-    df_hour = q_offender_hour_profile(con, selected, date_start, date_end)
-    st.write("Hourly profile")
-    st.dataframe(df_hour, use_container_width=True, height=220)
 
 st.divider()
 st.markdown(
