@@ -1,6 +1,8 @@
 html {
-  background-color: #red;
-}.site-header {
+  background-color: #f5f5f5;
+}
+
+.site-header {
     text-align: center;
     padding: 0;
 }
@@ -33,6 +35,30 @@ html {
   height: auto;
   flex: 1;
   flex-wrap: wrap;
+}
+
+/* Default styling for any link placed in the top nav */
+.top-nav a {
+  color: #ff7300;
+  text-decoration: none;
+  font-weight: normal;
+  text-transform: uppercase;
+  font-family: "Garamond", sans-serif;
+  font-size: 1.1em;
+  white-space: nowrap;
+}
+
+/* Ensure visited/active/focus states don't revert to browser defaults */
+.top-nav a:link,
+.top-nav a:visited,
+.top-nav a:active,
+.top-nav a:focus {
+  color: #ff7300;
+  text-decoration: none;
+}
+
+.top-nav a:hover {
+  text-decoration: underline;
 }
 
 .nav-link {
