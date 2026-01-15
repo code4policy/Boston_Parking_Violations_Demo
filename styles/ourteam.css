@@ -2,38 +2,42 @@ body {
   font-family: Arial, sans-serif;
   background-color: #f9f9f9;
   margin: 0;
-  padding: 20px;
+  padding: 0;
 }
 
 .site-header {
-    text-align: center;
+    text-align: left;
     padding: 0;
 }
 
 .header-top {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0 20px;
-    background-color: #0b2a4a;
+    justify-content: flex-start;
+    padding: 0;
+    margin: 0;
+    background-color: #ffffff;
     height: 80px;
 }
 
 /* Logo */
 .logo {
-    max-width: 60px;
+    max-width: 460px;
+    width: 460px;
     height: auto;
+    display: block;
     flex-shrink: 0;
+    object-fit: contain;
 }
 
 /* Top Navigation Bar */
 .top-nav {
-  background-color: transparent;
+  background-color: #ffffff;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: center;
   gap: 30px;
-  padding: 0;
+  padding: 0 20px;
   box-sizing: border-box;
   height: auto;
   flex: 1;
@@ -41,40 +45,31 @@ body {
 }
 
 .nav-link {
-  color: #ff7300;
+  color: #0b2a4a;
   text-decoration: none;
-  font-weight: normal;
+  font-weight: 300;
   text-transform: uppercase;
-  font-family: "Garamond", sans-serif;
-  font-size: 1.1em;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 0.85em;
   white-space: nowrap;
+  letter-spacing: 0.25px;
 }
 
 .nav-link:hover {
-  text-decoration: underline;
-}
-
-/* Top Navigation Bar */
-.top-nav {
-  background-color: transparent;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 30px;
-  padding: 0;
-  box-sizing: border-box;
-  height: auto;
-  flex: 1;
-  flex-wrap: wrap;
+  color: red;
 }
 
 h1 {
-  text-align: center;
-  font-size: 2.25em;
-  color: #CC5500;
-  font-family: "Lucida Handwriting", cursive;
   margin: 0;
-  padding: 20px 0;
+  padding: 20px 30px;
+  font-size: 2.8em;
+  color: #0b2a4a;
+  font-family: Montserrat, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  border-bottom: 9px solid #0b2a4a;
+  display: inline-block;
+  letter-spacing: 1px;
 }
 
 .team-container {
@@ -88,7 +83,7 @@ h1 {
 
 .team-member {
   background-color: white;
-  border: 2px solid #007BFF; /* blue border around each box */
+  border: 2px solid #0b2a4a; /* blue border around each box */
   border-radius: 10px;
   width: 300px;
   text-align: center;
@@ -105,19 +100,22 @@ h1 {
   width: 150px;
   height: 150px;
   border-radius: 50%;
-  border: 3px solid #007BFF; /* blue border around image */
+  border: 3px solid #0b2a4a; /* blue border around image */
   object-fit: cover;
   margin-bottom: 15px;
 }
 
 .team-member h2 {
   margin: 10px 0 5px 0;
-  color: #007BFF;
+  color: #0b2a4a;
 }
 
 .team-member p {
-  color: #555;
-  font-size: 0.95em;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.1em;
+  color: #333;
+  line-height: 1.8;
+  font-weight: 400;
 }
 
 @media (max-width: 1000px) {
