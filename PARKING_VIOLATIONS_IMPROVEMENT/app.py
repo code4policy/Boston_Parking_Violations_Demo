@@ -5,6 +5,7 @@ import hashlib
 import colorsys
 import duckdb
 import pandas as pd
+import numpy as np
 import streamlit as st
 import pydeck as pdk
 import altair as alt
@@ -529,6 +530,198 @@ def q_first_time_offender_time_heatmap(
         return con.execute(sql, first_params + params).fetchdf()
 
 
+def q_one_time_offender_points(
+    con,
+    date_start,
+    date_end,
+    violations,
+    limit=50000,
+    exclude_deid_lpns=None,
+):
+    """Return ticket points for offenders who received exactly one ticket in the dataset.
+
+    Notes:
+    - Cohort definition is global: COUNT(*) over all of tickets_enriched for a deid_lpn equals 1.
+    - Returned points are still limited to tickets within the selected date window.
+    """
+
+    limit = int(limit)
+
+    exclude_list = None
+    if exclude_deid_lpns:
+        exclude_list = [int(x) for x in exclude_deid_lpns]
+
+    where = [
+        "t.ticket_issue_date BETWEEN ? AND ?",
+        "t.latitude IS NOT NULL",
+        "t.longitude IS NOT NULL",
+    ]
+    params = [date_start, date_end]
+
+    if exclude_list:
+        placeholders = ",".join(["?"] * len(exclude_list))
+        where.append(f"t.deid_lpn NOT IN ({placeholders})")
+        params.extend(exclude_list)
+
+    if violations:
+        placeholders = ",".join(["?"] * len(violations))
+        where.append(f"t.violation_desc_long IN ({placeholders})")
+        params.extend(list(violations))
+
+    sql = f"""
+    WITH counts AS (
+        SELECT
+            deid_lpn,
+            COUNT(*) AS n_tickets
+        FROM tickets_enriched
+        WHERE deid_lpn IS NOT NULL
+        GROUP BY 1
+    )
+    SELECT
+        t.deid_lpn,
+        t.latitude AS lat,
+        t.longitude AS lon,
+        t.ticket_issue_date,
+        t.ticket_issue_time,
+        t.violation_desc_long,
+        t.location,
+        t.street_name,
+        t.street_no,
+        t.ticket_number
+    FROM tickets_enriched t
+    JOIN counts c
+        ON t.deid_lpn = c.deid_lpn
+    WHERE c.n_tickets = 1
+        AND {' AND '.join(where)}
+    LIMIT ?
+    """
+
+    df = con.execute(sql, params + [limit]).fetchdf()
+    if df.empty:
+        return df
+
+    df["lat"] = pd.to_numeric(df["lat"], errors="coerce")
+    df["lon"] = pd.to_numeric(df["lon"], errors="coerce")
+    df = df.dropna(subset=["lat", "lon"]).copy()
+    df["feature_type"] = "One-time offender ticket"
+    return df
+
+
+def q_one_time_offender_time_series(
+    con,
+    date_start,
+    date_end,
+    violations,
+    exclude_deid_lpns=None,
+):
+    """Daily ticket counts for the one-time offender cohort."""
+
+    exclude_list = None
+    if exclude_deid_lpns:
+        exclude_list = [int(x) for x in exclude_deid_lpns]
+
+    where = ["t.ticket_issue_date BETWEEN ? AND ?"]
+    params = [date_start, date_end]
+
+    if exclude_list:
+        placeholders = ",".join(["?"] * len(exclude_list))
+        where.append(f"t.deid_lpn NOT IN ({placeholders})")
+        params.extend(exclude_list)
+
+    if violations:
+        placeholders = ",".join(["?"] * len(violations))
+        where.append(f"t.violation_desc_long IN ({placeholders})")
+        params.extend(list(violations))
+
+    sql = f"""
+    WITH counts AS (
+        SELECT
+            deid_lpn,
+            COUNT(*) AS n_tickets
+        FROM tickets_enriched
+        WHERE deid_lpn IS NOT NULL
+        GROUP BY 1
+    )
+    SELECT
+        t.ticket_issue_date,
+        'One-time offenders' AS deid_lpn,
+        COUNT(*) AS tickets
+    FROM tickets_enriched t
+    JOIN counts c
+        ON t.deid_lpn = c.deid_lpn
+    WHERE c.n_tickets = 1
+        AND {' AND '.join(where)}
+    GROUP BY 1
+    ORDER BY 1
+    """
+
+    df = con.execute(sql, params).fetchdf()
+    if df.empty:
+        return df
+    df["ticket_issue_date"] = pd.to_datetime(df["ticket_issue_date"], errors="coerce")
+    df = df.dropna(subset=["ticket_issue_date"]).copy()
+    return df
+
+
+def q_one_time_offender_time_heatmap(
+    con,
+    date_start,
+    date_end,
+    violations,
+    exclude_deid_lpns=None,
+):
+    """Hour-of-day x day-of-week heatmap for the one-time offender cohort."""
+
+    exclude_list = None
+    if exclude_deid_lpns:
+        exclude_list = [int(x) for x in exclude_deid_lpns]
+
+    where = ["t.ticket_issue_date BETWEEN ? AND ?"]
+    params = [date_start, date_end]
+
+    if exclude_list:
+        placeholders = ",".join(["?"] * len(exclude_list))
+        where.append(f"t.deid_lpn NOT IN ({placeholders})")
+        params.extend(exclude_list)
+
+    if violations:
+        placeholders = ",".join(["?"] * len(violations))
+        where.append(f"t.violation_desc_long IN ({placeholders})")
+        params.extend(list(violations))
+
+    sql = f"""
+    WITH counts AS (
+        SELECT
+            deid_lpn,
+            COUNT(*) AS n_tickets
+        FROM tickets_enriched
+        WHERE deid_lpn IS NOT NULL
+        GROUP BY 1
+    ),
+    base AS (
+        SELECT
+            CAST(t.ticket_issue_date AS DATE) AS d,
+            TRY_CAST(SUBSTR(t.ticket_issue_time, 1, 2) AS INTEGER) AS issue_hour
+        FROM tickets_enriched t
+        JOIN counts c
+            ON t.deid_lpn = c.deid_lpn
+        WHERE c.n_tickets = 1
+            AND {' AND '.join(where)}
+    )
+    SELECT
+        STRFTIME(d, '%a') AS day_name,
+        CAST(STRFTIME(d, '%w') AS INTEGER) AS day_num,
+        issue_hour,
+        COUNT(*) AS tickets
+    FROM base
+    WHERE issue_hour BETWEEN 0 AND 23
+    GROUP BY 1,2,3
+    ORDER BY 2,3
+    """
+
+    return con.execute(sql, params).fetchdf()
+
+
 def color_for_deid_lpn(deid_lpn: int, alpha: int = 180) -> list[int]:
     """Stable, visually distinct-ish color per offender id.
 
@@ -687,6 +880,10 @@ DISCLAIMER_HTML = (
 )
 st.markdown(DISCLAIMER_HTML, unsafe_allow_html=True)
 
+st.markdown(
+    """This dashboard explores City of Boston parking violations in 2024 using pre-aggregated Parquet artifacts and a de-identified ticket dataset. Use the date and violation filters to see how enforcement patterns shift across neighborhoods, streets, and time. The map can be viewed as either point clusters (binned cells) or a heatmap, and the offender views let you compare all vehicles vs. first-time vs. one-time vs. top repeat offenders. The time-pattern charts summarize when violations happen (by day and hour) and help highlight consistent routines versus spikes driven by specific offenders or dates."""
+)
+
 
 con = get_con()
 
@@ -711,6 +908,7 @@ with c4:
         options=[
             "All offenders",
             "First-time offenders",
+            "One-time offenders",
             "Top 5",
             "Top 10",
             "Top 20",
@@ -732,6 +930,15 @@ map_viz = st.radio(
     key="map_visualization_mode",
     help="Switch between the existing map style and a heatmap layer.",
 )
+
+# Default heatmap rendering parameters (applied automatically; no UI).
+# Tweaking knobs:
+# - opacity: lower = less intense
+# - radius_pixels: smaller = sharper hotspots
+# - weight_scale: reduces extreme hotspots for grid heatmap
+HEATMAP_OPACITY_DEFAULT = 0.30
+HEATMAP_RADIUS_PX_DEFAULT = 18
+HEATMAP_WEIGHT_SCALE_DEFAULT = "sqrt"  # one of: "sqrt", "log1p", "linear"
 
 # (Removed: "City Map of Violations" header)
 
@@ -755,6 +962,16 @@ with controls:
         help="Limits points drawn for performance.",
     )
 
+# Apply fixed heatmap configuration (no user control).
+if map_viz == "Heatmap":
+    heatmap_opacity = HEATMAP_OPACITY_DEFAULT
+    heatmap_radius_px = HEATMAP_RADIUS_PX_DEFAULT
+    heatmap_weight_scale = HEATMAP_WEIGHT_SCALE_DEFAULT
+else:
+    heatmap_opacity = 0.85
+    heatmap_radius_px = 35
+    heatmap_weight_scale = "linear"
+
 selected_offenders = None
 if offender_filter == "Enter specific deid_lpn":
     offender_text = st.text_input(
@@ -770,6 +987,8 @@ if offender_filter == "Enter specific deid_lpn":
 elif offender_filter == "All offenders":
     selected_offenders = None
 elif offender_filter == "First-time offenders":
+    selected_offenders = None
+elif offender_filter == "One-time offenders":
     selected_offenders = None
 elif offender_filter in {"Top 5", "Top 10", "Top 20", "Top 30", "Top 50"}:
     top_n_sel = int(offender_filter.split()[-1])
@@ -849,6 +1068,15 @@ elif offender_filter == "First-time offenders":
         limit=offender_points_limit,
         exclude_deid_lpns=([187] if not include_deid_187 else None),
     )
+elif offender_filter == "One-time offenders":
+    offender_points = q_one_time_offender_points(
+        con,
+        date_start,
+        date_end,
+        violations,
+        limit=offender_points_limit,
+        exclude_deid_lpns=([187] if not include_deid_187 else None),
+    )
 elif selected_offenders:
     offender_points = q_offender_points(
         con,
@@ -876,6 +1104,9 @@ if offender_filter is not None:
         else:
             offender_points["fill_color"] = offender_points["deid_lpn"].apply(color_for_deid_lpn)
             offender_points["radius_px"] = 5
+
+        # Weight used by the map heatmap layer.
+        offender_points["heat_weight"] = 1.0
     st.caption(f"Offender points shown: {len(offender_points):,}")
 
 if show_offender_layer and offender_filter is not None and offender_points.empty:
@@ -913,9 +1144,9 @@ if offender_filter is not None and not offender_points.empty:
                 "HeatmapLayer",
                 data=offender_points,
                 get_position="[lon, lat]",
-                get_weight=1,
-                radius_pixels=35,
-                opacity=0.85,
+                get_weight="heat_weight",
+                radius_pixels=heatmap_radius_px,
+                opacity=heatmap_opacity,
                 pickable=False,
             )
         )
@@ -941,14 +1172,24 @@ if not show_offender_layer:
         st.info("No violations found for the current filters.")
     else:
         if map_viz == "Heatmap":
+            # Soften extreme hotspots by scaling weights.
+            if not df_map.empty:
+                w = pd.to_numeric(df_map[value_col], errors="coerce").fillna(0.0).clip(lower=0.0)
+                if heatmap_weight_scale == "sqrt":
+                    df_map["heat_weight"] = np.sqrt(w)
+                elif heatmap_weight_scale == "log1p":
+                    df_map["heat_weight"] = np.log1p(w)
+                else:
+                    df_map["heat_weight"] = w
+
             layers.append(
                 pdk.Layer(
                     "HeatmapLayer",
                     data=df_map,
                     get_position="[lon_bin, lat_bin]",
-                    get_weight=value_col,
-                    radius_pixels=45,
-                    opacity=0.85,
+                    get_weight="heat_weight",
+                    radius_pixels=heatmap_radius_px,
+                    opacity=heatmap_opacity,
                     pickable=False,
                 )
             )
@@ -1068,6 +1309,22 @@ if show_offender_layer:
             exclude_deid_lpns=exclude_lpns_for_time,
         )
         df_hm = q_first_time_offender_time_heatmap(
+            con,
+            date_start,
+            date_end,
+            violations,
+            exclude_deid_lpns=exclude_lpns_for_time,
+        )
+        hm_focus = None
+    elif offender_filter == "One-time offenders":
+        df_ts = q_one_time_offender_time_series(
+            con,
+            date_start,
+            date_end,
+            violations,
+            exclude_deid_lpns=exclude_lpns_for_time,
+        )
+        df_hm = q_one_time_offender_time_heatmap(
             con,
             date_start,
             date_end,
