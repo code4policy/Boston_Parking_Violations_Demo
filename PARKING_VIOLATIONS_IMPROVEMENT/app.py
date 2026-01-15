@@ -692,6 +692,10 @@ con = get_con()
 
 c1, c2, c3, c4 = st.columns([2, 2, 3, 2])
 
+# Fixed defaults (Metric removed from UI)
+metric = "total"
+top_n = 20
+
 with c1:
     date_start = st.date_input("Start date", value=date(2024, 1, 1)).strftime("%Y-%m-%d")
 with c2:
@@ -702,8 +706,22 @@ viol_vals = get_violation_values()
 with c3:
     violations = st.multiselect("Violations", options=viol_vals, default=[])
 with c4:
-    metric = st.selectbox("Metric", options=["total", "avg_per_day"], index=0)
-    top_n = st.slider("Top N", min_value=5, max_value=100, value=20, step=5)
+    offender_filter = st.selectbox(
+        "Parking offenders",
+        options=[
+            "All offenders",
+            "First-time offenders",
+            "Top 5",
+            "Top 10",
+            "Top 20",
+            "Top 30",
+            "Top 50",
+            "Enter specific deid_lpn",
+        ],
+        index=None,
+        placeholder="Choose an option",
+        help="Controls which offenders are plotted as individual ticket points.",
+    )
 
 # Map visualization toggle
 map_viz = st.radio(
@@ -722,28 +740,6 @@ value_col = "total_count" if metric == "total" else "avg_per_day"
 # Controls (no expander/frame)
 controls = st.container()
 with controls:
-    st.markdown(
-        "<div style='font-size:18px; font-weight:600; margin-bottom: 6px;'>Parking offenders</div>",
-        unsafe_allow_html=True,
-    )
-    offender_filter = st.selectbox(
-        "Parking offenders",
-        options=[
-            "All offenders",
-            "First-time offenders",
-            "Top 5",
-            "Top 10",
-            "Top 20",
-            "Top 30",
-            "Top 50",
-            "Enter specific deid_lpn",
-        ],
-        index=None,
-        placeholder="Choose an option",
-        help="Controls which offenders are plotted as individual ticket points.",
-        label_visibility="collapsed",
-    )
-
     include_deid_187 = st.checkbox(
         "Include vehicles with no license plate",
         value=True,
@@ -1290,6 +1286,17 @@ if show_offender_layer:
             )
 
 st.divider()
+
+# Controls for the ranking tables
+top_n = st.slider(
+    "Top N",
+    min_value=5,
+    max_value=100,
+    value=int(top_n),
+    step=5,
+    key="top_n_tables",
+    help="Controls how many rows appear in the Top Offenders / Top Streets tables.",
+)
 
 col1, col2 = st.columns(2)
 
