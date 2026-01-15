@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+.env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Streamlit
+.streamlit/secrets.toml
+
+
+# Data artifacts (keep out of git unless using Git LFS)
+*.parquet
+*.csv
+*.duckdb
+*.db
+
+# Backups
+*.bak
+
+# IDE
+.vscode/

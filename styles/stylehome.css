@@ -111,3 +111,34 @@ html {
     font-weight: normal;
 }
 
+/* Spatial Behavior Analysis section */
+.analysis-section {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.analysis-section h1 {
+  margin: 10px 0 20px;
+  text-align: center;
+  color: #0b2a4a;
+  font-family: Helvetica, sans-serif;
+}
+
+.analysis-section p {
+  margin: 0 0 18px;
+  font-family: Helvetica, sans-serif;
+  line-height: 1.55;
+  color: #0b2a4a;
+}
+
+.analysis-section .analysis-content {
+  margin: 20px 0;
+  padding: 0;
+}
+
+.analysis-section .analysis-content .text {
+  max-width: 700px;
+}
+

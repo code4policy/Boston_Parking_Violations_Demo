@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run Streamlit app.py",
+			"type": "shell",
+			"command": "streamlit run PARKING_VIOLATIONS_IMPROVEMENT/app.py",
+			"args": [],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}
