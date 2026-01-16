@@ -19,13 +19,94 @@
     <h1 class="header-text">Methodology</h1>
     </header>
 
+    <div class="content">
+        <p>
+            To conduct our analysis we utilized a dataset of parking violations in the City of Boston in 2024. Each violator had a unique de-identified ID (DEID). To analyze one-time offenders, we filtered the dataset for violators whose DEID only appeared once in the dataset. As a result we distinguish between <b>first-time offenders</b> and <b>one-time offenders</b>. We make the assumption that one-time violators are different from violators with two or more parking violations in a calendar year. 
+        </p>
+
+        <p>
+            To generate the heatmap visuals we used PyDeck to plot the latitude and longitude of each one-time violator's parking violation. The heatmaps illustrate the density of one-time parking violations across different areas of Boston.
+        </p>
+
+        <p>
+            To analyze repeat offenders we grouped individual violations by their DEID and counted the number of violations per DEID. We generated the point plot in PyDeck to visualize the spatial distribution of the top repeat offenders based on the number of violations they committed in 2024.
+        </p>
+
+        <h3>Dashboard Methodology</h3>
+
+              <p>
+            To generate an interactive dashboard that replicates our findings, we used Streamlit to create a Python web application that allows users to explore the 2024 parking violation summons data. The dashboard includes various visualizations, such as heatmaps and point plots, to illustrate the distribution of one-time and repeat parking violators in Boston.   
+
+        </p>
+
+        <p>The dashboard is summarized into a small set of Parquet “artifact” tables optimized for interactive filtering. We generated these artifacts with DuckDB (see the parquet generation workflow) and loaded them in Streamlit as read-only views, which keeps the web app responsive even when users apply multiple filters (date range, violation types, and offender cohorts).</p>
+
+         <h4>Cluster Map Methodology</h4>
+
+        <p>
+             The cluster map visualization used spatial gridding (map bins). Spatial patterns are summarized using a fixed latitude/longitude grid rather than variable administrative boundaries. Each ticket is assigned to a grid cell by rounding latitude and longitude to the nearest 0.0005 degrees. Each grid cell is then colored based on the number of tickets assigned to that cell, with a color gradient indicating higher or lower concentrations of tickets.
+        </p>
+
+         <h4>Color scheme choice (map mode vs heatmap mode)</h4>
+        <p>
+              In “Map” mode, we use a discrete, high-contrast palette designed for a dark basemap: light blue → dark blue → yellow → orange → red, with semi-transparency so dense areas don’t fully occlude the base map. In “Heatmap” mode, we switch to a kernel-density-style visualization (pydeck HeatmapLayer) where intensity is driven by the selected metric (or by point count for individual violations), making it easier to perceive gradients and broader spatial structure.
+        </p>
+
+        <h4>Quantile binning and why we use it</h4>
+        <p>
+            Parking ticket counts are heavy-tailed: the dashboard computes distribution cutoffs dynamically from the filtered data using the 20th, 40th, 60th, and 80th percentiles. Each cell is assigned to one of five bins (≤20%, 20–40%, 40–60%, 60–80%, >80%) and colored accordingly; the legend shows the numeric thresholds for the current filter state. This approach ensures the color scale uses the full palette across different filters, while keeping the interpretation grounded in relative intensity within the selected subset.
+        </p>
+    </div>
     
+    <div class="disclaimer-container">
+        <h3> This is not an official City of Boston website. This is an academic project created by Harvard Kennedy School students</h3>
+    </div>
     <div class="separator-bar">
         <img src="../images/bostonlogo.jpg" alt="bostonlogo" class="separator-logo">
     </div>
-    <div class="content">
-       
-        <!-- Existing content for the methodology page should go here -->
-    </div>
+
+    <!-- Back to Top Button -->
+    <button id="backToTopBtn" class="back-to-top-btn" title="Go to top">
+        <div class="button-content">
+            <svg class="button-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <span class="button-text">BACK TO TOP</span>
+        </div>
+    </button>
+
+    <script>
+        // Get the back to top button
+        const backToTopBtn = document.getElementById('backToTopBtn');
+        
+        // Function to handle scroll events
+        function handleScroll() {
+            // Get the Methodology header element
+            const methodologyHeader = document.querySelector('.header-text');
+            
+            if (methodologyHeader) {
+                // Get the position of the Methodology header
+                const headerRect = methodologyHeader.getBoundingClientRect();
+                
+                // Show button if the header is above the viewport (no longer visible)
+                if (headerRect.top < 0) {
+                    backToTopBtn.classList.add('show');
+                } else {
+                    backToTopBtn.classList.remove('show');
+                }
+            }
+        }
+        
+        // Add scroll event listener
+        window.addEventListener('scroll', handleScroll);
+        
+        // Add click event listener to button
+        backToTopBtn.addEventListener('click', function() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    </script>
 </body>
 </html>
