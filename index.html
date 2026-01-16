@@ -131,6 +131,15 @@
         </section>
     </main>
     
+    <!-- Back to Top Button -->
+    <button id="backToTopBtn" class="back-to-top-btn" title="Go to top">
+        <div class="button-content">
+            <svg class="button-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <span class="button-text">BACK TO TOP</span>
+        </div>
+    </button>
 
     <div class="disclaimer-container">
         <h3> This is not an official City of Boston website. This is an academic project created by Harvard Kennedy School students</h3>
@@ -138,6 +147,40 @@
     <div class="separator-bar">
         <img src="images/bostonlogo.jpg" alt="bostonlogo" class="separator-logo">
     </div>
+
+    <script>
+        // Get the back to top button
+        const backToTopBtn = document.getElementById('backToTopBtn');
+        
+        // Function to handle scroll events
+        function handleScroll() {
+            // Get the Allston header element
+            const allstonHeader = document.querySelector('h2.smaller-header');
+            
+            if (allstonHeader) {
+                // Get the position of the Allston header
+                const headerRect = allstonHeader.getBoundingClientRect();
+                
+                // Show button if the header is above the viewport (no longer visible)
+                if (headerRect.top < 0) {
+                    backToTopBtn.classList.add('show');
+                } else {
+                    backToTopBtn.classList.remove('show');
+                }
+            }
+        }
+        
+        // Add scroll event listener
+        window.addEventListener('scroll', handleScroll);
+        
+        // Add click event listener to button
+        backToTopBtn.addEventListener('click', function() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    </script>
 
     </body>
 </html>
