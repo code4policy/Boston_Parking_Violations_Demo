@@ -6,3 +6,4 @@ pillow
 plotly
 duckdb
 altair
+pydeck

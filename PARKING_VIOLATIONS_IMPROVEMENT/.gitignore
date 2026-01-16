@@ -26,6 +26,14 @@ venv/
 *.duckdb
 *.db
 
+# Allow the minimal Parquet artifacts required for Streamlit deployment.
+!agg_map_grid_day_norm.parquet
+!agg_offenders_day_norm.parquet
+!agg_streets_day_norm.parquet
+!agg_offender_violation_day.parquet
+!agg_offender_hour_day.parquet
+!tickets_2024_enriched.parquet
+
 # Backups
 *.bak
 
