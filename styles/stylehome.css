@@ -38,9 +38,18 @@ p {
     font-weight: 400;
 }
 
+ul, li {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.1em;
+    color: #333;
+    line-height: 2;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
 h2 {
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 1.8em;
+    font-size: 2em;
     color: #0b2a4a;
     font-weight: 900;
     text-transform: uppercase;
@@ -48,6 +57,10 @@ h2 {
     display: inline-block;
     padding-bottom: 10px;
     margin-bottom: 20px;
+}
+
+h2.smaller-header {
+    font-size: 1.5em;
 }
 
 .site-header {
@@ -364,6 +377,34 @@ h2 {
     z-index: 1000;
     margin: 0;
     opacity: 0.85;
+}
+
+.blue-background-section {
+    width: 100%;
+    background-color: #091f2f;
+    padding: 40px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    position: relative;
+    z-index: 10;
+}
+
+.blue-background-section .side-by-side-content-section {
+    background-color: transparent;
+    margin-left: 20px !important;
+    margin-right: auto !important;
+}
+
+.blue-background-section .side-by-side-content-section h2,
+.blue-background-section .header-top-section h2 {
+    color: white;
+    border-bottom-color: white;
+}
+
+.blue-background-section .text,
+.blue-background-section p {
+    color: white;
 }
 
 .disclaimer-container h3 {
