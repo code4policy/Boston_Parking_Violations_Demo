@@ -71,7 +71,7 @@ st.markdown("""
 # Load data
 @st.cache_data
 def load_data():
-    df = pd.read_csv('trellint_tickets_deid_lpn_2024.csv') #calls the data from local csv file named 'trellint_tickets_deid_lpn_2024.csv' but the same csv is in the parking_violations_improvement folder
+    df = pd.read_csv('parking_violation_24.csv') #calls the data from local csv file named 'trellint_tickets_deid_lpn_2024.csv' but the same csv is in the parking_violations_improvement folder
     
     # Drop rows with missing latitude/longitude
     df = df.dropna(subset=["latitude", "longitude"])
