@@ -1,0 +1,289 @@
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,100;0,400;1,100;1,400&display=swap');
+/* imported the lora font that City of Boston uses for its branding from Google Fonts */
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+}
+
+p {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.1em;
+    color: #333;
+    line-height: 1.8;
+    font-weight: 400;
+}
+
+.content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+ul, li {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.1em;
+    color: #333;
+    line-height: 2;
+    font-weight: 400;
+}
+
+h2 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 2em;
+    color: #0b2a4a;
+    font-weight: 900;
+    text-transform: uppercase;
+    display: block;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+    position: relative;
+    padding-right: 0;
+}
+
+h2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 7px;
+    width: calc(90vw - 40px);
+    background-color: #0b2a4a;
+}
+
+h3 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1.5em;
+    color: #0b2a4a;
+    font-weight: 900;
+    text-transform: uppercase;
+    border-bottom: 7px solid #0b2a4a;
+    display: block;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    margin-top: 30px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+h4 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1.2em;
+    color: #0b2a4a;
+    font-weight: 900;
+    text-transform: uppercase;
+    border-bottom: 7px solid #0b2a4a;
+    display: block;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    margin-top: 30px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.site-header {
+    text-align: left;
+    padding: 0;
+}
+
+.header-top {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0;
+    margin: 0;
+    background-color: #fff;
+    height: 80px;
+}
+
+/* Logo */
+.logo {
+    max-width: 460px;
+    width: 460px;
+    height: auto;
+    display: block;
+    flex-shrink: 0;
+    object-fit: contain;
+}
+
+/* Top Navigation Bar */
+.top-nav {
+  background-color: #ffffff;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 30px;
+  padding: 0 20px;
+  box-sizing: border-box;
+  height: auto;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.nav-link {
+  color: #0b2a4a;
+  text-decoration: none;
+  font-weight: 250;
+  text-transform: uppercase;
+  font-family: Montserrat, Arial, sans-serif;
+  font-size: 0.87em;
+  white-space: nowrap;
+  letter-spacing: 0.7px;
+}
+
+.nav-link:hover {
+  color: red;
+}
+
+/* Header text left-aligned */
+.header-text {
+    margin: 0;
+    padding: 20px 30px;
+    font-size: 2em;
+    color: #0b2a4a;
+    font-family: Montserrat, sans-serif;
+    font-weight: 900;
+    text-transform: uppercase;
+    display: inline-block;
+    letter-spacing: 1px;
+    position: relative;
+}
+
+.header-text::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 30px;
+    height: 7px;
+    width: calc(90vw - 70px);
+    background-color: #0b2a4a;
+}
+
+.separator-bar {
+    width: 100%;
+    height: 100px;
+    background-color: #091f2f;
+    display: flex;
+    align-items: center;
+    position: relative;
+    margin-top: auto;
+}
+
+.separator-logo {
+    height: 90%;
+    margin-left: 8px;
+    object-fit: contain;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+.disclaimer-container {
+    width: 100%;
+    background-color: #c74650;
+    padding: 15px 0;
+    text-align: center;
+    position: absolute;
+    top: 80px;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    margin: 0;
+    opacity: 0.85;
+}
+
+.methodology-page-disclaimer {
+    position: static;
+    top: auto;
+    left: auto;
+    right: auto;
+    z-index: auto;
+}
+
+
+
+.disclaimer-container h3 {
+    text-align: center;           
+    font-size: 1.0em;             
+    font-family: Helvetica, sans-serif;  
+    color: #ffffff;
+    font-style: normal;
+    font-weight: bold;
+    margin: 0;
+    border-bottom: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Back to Top Button */
+.back-to-top-btn {
+    position: fixed;
+    bottom: 40px;
+    right: 18px;
+    padding: 12px 10px;
+    background-color: #808080;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 999;
+}
+
+.button-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.button-arrow {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.button-text {
+    font-weight: bold;
+    font-size: 11px;
+    font-family: Arial, sans-serif;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+.back-to-top-btn:hover {
+    background-color: #696969;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.back-to-top-btn.show {
+    opacity: 1;
+    visibility: visible;
+}
