@@ -188,7 +188,7 @@ st.set_page_config(page_title="Boston Violations Dashboard", layout="wide")
 from PIL import Image
 from pathlib import Path
 
-IMAGES_DIR = Path("/Users/argeniscontreras/development/PARKING_VIOLATIONS_IMPROVEMENT/images")
+IMAGES_DIR = Path("/Users/argeniscontreras/development/streamlit_interactive_dashboard/images")
 
 header_img = Image.open(IMAGES_DIR / "header.png")  # change filename if needed
 st.image(header_img, use_container_width=True)
