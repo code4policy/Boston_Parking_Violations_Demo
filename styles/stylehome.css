@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,100;0,400;1,100;1,400&display=swap');
+/* imported the lora font that City of Boston uses for its branding from Google Fonts */
+
 .separator-bar {
     width: 100%;
     height: 100px;
@@ -25,16 +28,16 @@
 }
 
 .placeholder-subheader {
-    font-family: "Lora", serif;
-    font-size: 1.7em;
+    font-family: Lora, Georgia, "Times New Roman", serif;
+    font-size: 1.6em;
     color: #091f2f;
     font-style: italic;
-    font-weight: 400;
+    font-weight: 80;
     margin: -5px auto 30px auto;
     padding: 0 20px;
     max-width: 90%;
     box-sizing: border-box;
-    line-height: 2;
+    line-height: 1.9;
 }
 
 .separator-logo {
@@ -90,12 +93,22 @@ h2 {
     color: #0b2a4a;
     font-weight: 900;
     text-transform: uppercase;
-    border-bottom: 7px solid #0b2a4a;
     display: block;
     padding-bottom: 10px;
     margin-bottom: 20px;
-    width: 100%;
     box-sizing: border-box;
+    position: relative;
+    padding-right: 0;
+}
+
+h2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 7px;
+    width: calc(90vw - 40px);
+    background-color: #0b2a4a;
 }
 
 h3 {
@@ -143,7 +156,7 @@ h2.smaller-header {
     justify-content: flex-start;
     padding: 0;
     margin: 0;
-    background-color: #ffffff;
+    background-color: #fff;
     height: 80px;
 }
 
@@ -174,12 +187,13 @@ h2.smaller-header {
 .nav-link {
   color: #0b2a4a;
   text-decoration: none;
-  font-weight: 300;
+  font-weight: 250;
   text-transform: uppercase;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 0.85em;
+  font-family: Montserrat, Arial, sans-serif;
+  font-size: 0.87em;
   white-space: nowrap;
-  letter-spacing: 0.25px;
+  letter-spacing: 0.7px;
+
 }
 
 .nav-link:hover {
@@ -203,10 +217,10 @@ h2.smaller-header {
 .header-text::after {
     content: '';
     position: absolute;
-    bottom: -9px;
+    bottom: 0;
     left: 30px;
-    width: calc(100vw - 30px);
-    height: 9px;
+    height: 7px;
+    width: calc(90vw - 70px);
     background-color: #0b2a4a;
 }
 
@@ -400,6 +414,10 @@ h2.smaller-header {
     object-fit: contain;
 }
 
+img[src*="top_five"] {
+    border: 1px solid #e8e8e8;
+}
+
 .allston-image img {
     max-width: 100%;
     height: auto;
@@ -490,6 +508,10 @@ h2.smaller-header {
 .blue-background-section .header-top-section h2 {
     color: white;
     border-bottom-color: white;
+}
+
+.blue-background-section .header-top-section h2::after {
+    background-color: white;
 }
 
 .blue-background-section .text,
