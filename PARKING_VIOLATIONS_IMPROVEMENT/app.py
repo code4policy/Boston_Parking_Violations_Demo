@@ -865,7 +865,7 @@ from PIL import Image
 
 IMAGES_DIR = APP_DIR / "images"
 
-header_img = Image.open(IMAGES_DIR / "header.png")
+header_img = Image.open(IMAGES_DIR / "dashboard_header.png")
 st.image(header_img, use_container_width=True)
 st.markdown(
     "<h1 style='text-align: center;'>City of Boston Parking Violations Analysis</h1>",
