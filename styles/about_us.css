@@ -1,8 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,100;0,400;1,100;1,400&display=swap');
+/* imported the lora font that City of Boston uses for its branding from Google Fonts */
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
 body {
-  font-family: Arial, sans-serif;
-  background-color: #f9f9f9;
-  margin: 0;
-  padding: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+}
+
+p {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.1em;
+    color: #333;
+    line-height: 1.8;
+    font-weight: 400;
+} /* set paragraph styling for about us page to align with the rest of the site, consistency is key! */
+
+.content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+ul, li {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.1em;
+    color: #333;
+    line-height: 2;
+    font-weight: 400;
+}
+
+h3 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1.5em;
+    color: #0b2a4a;
+    font-weight: 900;
+    text-transform: uppercase;
+    border-bottom: 7px solid #0b2a4a;
+    display: block;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    margin-top: 30px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+h4 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1.2em;
+    color: #0b2a4a;
+    font-weight: 900;
+    text-transform: uppercase;
+    border-bottom: 7px solid #0b2a4a;
+    display: block;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    margin-top: 30px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .site-header {
@@ -16,7 +79,7 @@ body {
     justify-content: flex-start;
     padding: 0;
     margin: 0;
-    background-color: #ffffff;
+    background-color: #fff;
     height: 80px;
 }
 
@@ -47,136 +110,56 @@ body {
 .nav-link {
   color: #0b2a4a;
   text-decoration: none;
-  font-weight: 300;
+  font-weight: 250;
   text-transform: uppercase;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 0.85em;
+  font-family: Montserrat, Arial, sans-serif;
+  font-size: 0.87em;
   white-space: nowrap;
-  letter-spacing: 0.25px;
+  letter-spacing: 0.7px;
 }
 
 .nav-link:hover {
   color: red;
+}  /* changed hover color to red to match the City of Boston site */
+
+/* Header text left-aligned */
+.header-text {
+    margin: 0;
+    padding: 20px 30px;
+    font-size: 2em;
+    color: #0b2a4a;
+    font-family: Montserrat, sans-serif;
+    font-weight: 900;
+    text-transform: uppercase;
+    display: inline-block;
+    letter-spacing: 1px;
+    position: relative;
 }
 
-h1 {
-  margin: 0;
-  padding: 20px 30px;
-  font-size: 2.8em;
-  color: #0b2a4a;
-  font-family: Montserrat, sans-serif;
-  font-weight: 900;
-  text-transform: uppercase;
-  border-bottom: 9px solid #0b2a4a;
-  display: inline-block;
-  letter-spacing: 1px;
-}
-
-.team-container {
-  display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap;
-  margin-top: 30px;
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.team-member {
-  background-color: white;
-  border: 2px solid #0b2a4a; /* blue border around each box */
-  border-radius: 10px;
-  width: 300px;
-  text-align: center;
-  padding: 20px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  transition: transform 0.2s;
-}
-
-.team-member:hover {
-  transform: translateY(-5px);
-}
-
-.team-member img {
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  border: 3px solid #0b2a4a; /* blue border around image */
-  object-fit: cover;
-  margin-bottom: 15px;
-}
-
-.team-member h2 {
-  margin: 10px 0 5px 0;
-  color: #0b2a4a;
-}
-
-.team-member p {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.1em;
-  color: #333;
-  line-height: 1.8;
-  font-weight: 400;
-}
-
-@media (max-width: 1000px) {
-  .team-container {
-    flex-direction: column;
-    align-items: center;
-  }
+.header-text::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 30px;
+    height: 7px;
+    width: calc(90vw - 70px);
+    background-color: #0b2a4a;
 }
 
 .separator-bar {
-
-  height: 30px;
-  background-color: #0b2a4a; /* dark blue */
-  width: 100%;
-  margin-bottom: 30px;
-
+    width: 100%;
+    height: 100px;
+    background-color: #091f2f;
+    display: flex;
+    align-items: center;
+    position: relative;
+    margin-top: auto;
 }
 
-.home-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  margin-bottom: 50px;
-
-  font-family: 'Inter', Arial, sans-serif;
-  font-size: 0.95rem;
-  font-weight: 500;
-
-  color: #ffffff;
-  background-color: #CC5500;
-  text-decoration: none;
-
-  border-radius: 999px; /* pill shape */
-  box-shadow: 0 6px 12px rgba(11, 42, 74, 0.25);
-
-  transition: 
-    background-color 0.2s ease,
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-/* Hover effect */
-.home-button:hover {
-  background-color: #143d66;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 18px rgba(11, 42, 74, 0.3);
-}
-
-/* Keyboard accessibility */
-.home-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(11, 42, 74, 0.35);
-}
-
-/* Optional: fix it to the top-left corner */
-.home-button.fixed {
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  z-index: 1000;
+.separator-logo {
+    height: 90%;
+    margin-left: 8px;
+    object-fit: contain;
 }
 
 .disclaimer-container {
@@ -184,10 +167,21 @@ h1 {
     background-color: #c74650;
     padding: 15px 0;
     text-align: center;
-    position: relative;
+    position: absolute;
+    top: 80px;
+    left: 0;
+    right: 0;
     z-index: 1000;
     margin: 0;
     opacity: 0.85;
+} /* set the disclaimer container styling for the about us page to red so that users know it is not an official City of Boston website */
+
+.about-us-page-disclaimer {
+    position: static;
+    top: auto;
+    left: auto;
+    right: auto;
+    z-index: auto;
 }
 
 .disclaimer-container h3 {
@@ -203,3 +197,64 @@ h1 {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* Team Container */
+.team-container {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    margin-top: 30px;
+    gap: 20px;
+    margin-bottom: 30px;
+    max-width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.team-member {
+    background-color: white;
+    border: 2px solid #0b2a4a;
+    border-radius: 10px;
+    width: 300px;
+    text-align: center;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.team-member:hover {
+    transform: translateY(-5px);
+}
+
+.team-member img {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 3px solid #0b2a4a;
+    object-fit: cover;
+    margin-bottom: 15px;
+}
+
+.team-member h2 {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1.3em;
+    color: #0b2a4a;
+    font-weight: 900;
+    text-transform: uppercase;
+    margin: 10px 0 5px 0;
+}
+
+.team-member p {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.1em;
+    color: #333;
+    line-height: 1.8;
+    font-weight: 400;
+}
+
+@media (max-width: 1000px) {
+    .team-container {
+        flex-direction: column;
+        align-items: center;
+    }
+} /* Responsive design for smaller screens */

@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import pydeck as pdk
+# install libraries to manipulate data and create streamlit dashboard
 
 # Set page config
 st.set_page_config(page_title="Boston Parking Violations Dashboard", layout="wide")
@@ -71,11 +72,11 @@ st.markdown("""
 # Load data
 @st.cache_data
 def load_data():
-    df = pd.read_csv('parking_violation_24.csv') #calls the data from local csv file named 'trellint_tickets_deid_lpn_2024.csv' but the same csv is in the parking_violations_improvement folder
+    df = pd.read_csv('parking_violation_24.csv') #calls the data from local csv file 
     
-    # Drop rows with missing latitude/longitude
+    # Drop rows with missing latitude/longitude 
     df = df.dropna(subset=["latitude", "longitude"])
-    # Filter to keep only unique deid_lpn
+    # Filter to keep only unique deid_lpn, we only want one-time offenders
     df_unique = df[df['deid_lpn'].value_counts()[df['deid_lpn']].values == 1]
     return df_unique
 
@@ -84,12 +85,12 @@ df_unique = load_data()
 # Get unique violation descriptions (filter out NaN values)
 violation_types = sorted([v for v in df_unique['violation_desc_long'].unique() if pd.notna(v)])
 
-# Dropdown filter
+# Dropdown filter by violation type so i can reduce 'noise' in data on the heatmap
 st.sidebar.header("Filters")
 selected_violation = st.sidebar.selectbox(
     "Select Violation Type",
     ["All Violations"] + violation_types
-)
+) # categories in the dropdown menu
 
 # Display dynamic title with selected violation type
 if selected_violation == "All Violations":
@@ -112,7 +113,7 @@ with col2:
 with col3:
     st.metric("% of Dataset", f"{(len(filtered_df)/len(df_unique)*100):.1f}%")
 
-# Create heatmap
+# Create heatmap and set intensity at 1.5 for better visibility in hotspots
 layer = pdk.Layer(
     "HeatmapLayer",
     data=filtered_df[["longitude", "latitude"]].dropna(),
@@ -122,7 +123,7 @@ layer = pdk.Layer(
     threshold=0.3
 )
 
-view_state = pdk.ViewState(latitude=42.36, longitude=-71.06, zoom=13)
+view_state = pdk.ViewState(latitude=42.36, longitude=-71.06, zoom=13) # Centered on Boston so I can see hotspots up close 
 
 # Display map
 st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view_state, map_style="light"))

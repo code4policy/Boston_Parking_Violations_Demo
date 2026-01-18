@@ -144,7 +144,7 @@ h4 {
 
 .nav-link:hover {
   color: red;
-}
+}  /* changed hover color to red to match the City of Boston site */
 
 /* Header text left-aligned */
 .header-text {
@@ -187,17 +187,6 @@ h4 {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
 .disclaimer-container {
     width: 100%;
     background-color: #c74650;
@@ -210,7 +199,7 @@ h4 {
     z-index: 1000;
     margin: 0;
     opacity: 0.85;
-}
+} /* set the disclaimer container styling for the methodology page to red so that users know it is not an official City of Boston website */
 
 .methodology-page-disclaimer {
     position: static;
@@ -219,7 +208,6 @@ h4 {
     right: auto;
     z-index: auto;
 }
-
 
 
 .disclaimer-container h3 {
