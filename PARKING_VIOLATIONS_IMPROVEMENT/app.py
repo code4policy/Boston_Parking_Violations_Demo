@@ -907,13 +907,10 @@ with c4:
         "Parking offenders",
         options=[
             "All offenders",
-            "First-time offenders",
             "One-time offenders",
-            "Top 5",
-            "Top 10",
-            "Top 20",
-            "Top 30",
-            "Top 50",
+            "Top 5 repeat offenders",
+            "Top 10 repeat offenders",
+            "Top 20 repeat offenders",
             "Enter specific deid_lpn",
         ],
         index=None,
@@ -936,8 +933,8 @@ map_viz = st.radio(
 # - opacity: lower = less intense
 # - radius_pixels: smaller = sharper hotspots
 # - weight_scale: reduces extreme hotspots for grid heatmap
-HEATMAP_OPACITY_DEFAULT = 0.30
-HEATMAP_RADIUS_PX_DEFAULT = 18
+HEATMAP_OPACITY_DEFAULT = 0.50
+HEATMAP_RADIUS_PX_DEFAULT = 15
 HEATMAP_WEIGHT_SCALE_DEFAULT = "sqrt"  # one of: "sqrt", "log1p", "linear"
 
 # (Removed: "City Map of Violations" header)
@@ -990,8 +987,8 @@ elif offender_filter == "First-time offenders":
     selected_offenders = None
 elif offender_filter == "One-time offenders":
     selected_offenders = None
-elif offender_filter in {"Top 5", "Top 10", "Top 20", "Top 30", "Top 50"}:
-    top_n_sel = int(offender_filter.split()[-1])
+elif offender_filter in {"Top 5 repeat offenders", "Top 10 repeat offenders", "Top 20 repeat offenders"}:
+    top_n_sel = int(offender_filter.split()[1])
     try:
         df_off_preview = q_top_offenders(
             con,
