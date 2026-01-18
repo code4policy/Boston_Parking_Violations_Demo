@@ -933,8 +933,8 @@ map_viz = st.radio(
 # - opacity: lower = less intense
 # - radius_pixels: smaller = sharper hotspots
 # - weight_scale: reduces extreme hotspots for grid heatmap
-HEATMAP_OPACITY_DEFAULT = 0.50
-HEATMAP_RADIUS_PX_DEFAULT = 15
+HEATMAP_OPACITY_DEFAULT = 0.70
+HEATMAP_RADIUS_PX_DEFAULT = 13
 HEATMAP_WEIGHT_SCALE_DEFAULT = "sqrt"  # one of: "sqrt", "log1p", "linear"
 
 # (Removed: "City Map of Violations" header)
