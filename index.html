@@ -2,7 +2,8 @@
 <html>
 <head>
         <title>2026 Parking Plan-Boston</title>
-        <link rel="stylesheet" type="text/css" href="styles/stylehome.css">
+        <link rel="stylesheet" type="text/css" href="styles/stylehome.css"> <!-- renamed the css stylesheet to improve code organization -->
+
         <style>
           .blue-bordered-img {
             border: 12px solid #091f2f;
@@ -15,12 +16,13 @@
 <body>
     <header class="site-header">
         <div class="header-top">
-            <img src="images/michelle_wu_sign.png" alt="bostonlogo" width="80" class="logo">
+            <img src="images/michelle_wu_sign.png" alt="bostonlogo" width="80" class="logo"> <!--  embedded image of city of boston website to make the head of the website align with brand-->
+
             <nav class="top-nav">
                 <a href="index.html" class="nav-link">Home</a>
-                 <a href="https://boston-parking-violations-demo-ckw9.onrender.com/" class="nav-link" target="_blank">Dashboard</a>
+                 <a href="https://boston-parking-violations-demo-ckw9.onrender.com/" class="nav-link" target="_blank">Dashboard</a> <!-- embedded link to dashboard on render instead of streamlit -->
                 <a href="methodology/methodology.html" class="nav-link">Methodology</a>
-                <a href='about_us/about_us.html' class="nav-link">About Us</a>
+                <a href='about_us/about_us.html' class="nav-link">About Us</a> 
                
             </nav>
         </div>
@@ -32,7 +34,7 @@
         <h1 class="top-placeholder-heading">Parking Enforcement: Violation Hotspots</h1>
         <p class="placeholder-subheader"> Distinguishing between areas where parking regulations are willfully ignored and where they may be misunderstood
             <br>
-            <br>
+            <br> <!-- added these breaks to generate some breathing space for the user -->
             
         </p>
 
@@ -77,7 +79,7 @@
 
         <section class="side-by-side-section">
             <div class="image-item allston-image">
-                <img src="images/allston_residentpermit_zoom.png" alt="zoomed map of Allston resident permit violations">
+                <img src="images/allston_residentpermit_zoom.png" alt="zoomed map of Allston resident permit violations"> <!-- when embedding images, i tried to make the alt readable in case a user needs to reference the image folder -->
             </div>
             <div class="image-item">
                 <img src="images/gardner_st.jpeg" alt="Gardner St photo">
@@ -112,12 +114,12 @@
             <div class="image-item">
                 <img src="images/fededhanover.jpeg" alt="Gardner St photo">
             </div>
-        </section>
+        </section> <!-- embedded the 3 images side by side to illustrate signage issues in the North End -->
 <br>
 <br>
         <div class="blue-background-section">
             <section class="side-by-side-content-section header-top-section">
-                <h2>mapping out the top repeat offenders</h2>
+                <h2>mapping out the top ten repeat offenders</h2>
             </section>
 
             <section class="side-by-side-content-section">
@@ -177,7 +179,7 @@
             
             if (allstonHeader) {
                 // Get the position of the Allston header
-                const headerRect = allstonHeader.getBoundingClientRect();
+                const headerRect = allstonHeader.getBoundingClientRect(); 
                 
                 // Show button if the header is above the viewport (no longer visible)
                 if (headerRect.top < 0) {
@@ -198,7 +200,7 @@
                 behavior: 'smooth'
             });
         });
-    </script>
+    </script> <!-- generated back to top button script so that a user can easily navigate to the top of the page if disoriented. in line 180-182 I set the Allston-Gardner St subheader as the reference point for when to activate/de-activate this feature -->
 
     </body>
 </html>

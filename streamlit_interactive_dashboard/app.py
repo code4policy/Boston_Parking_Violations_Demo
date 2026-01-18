@@ -7,6 +7,8 @@ import pandas as pd
 import streamlit as st
 import pydeck as pdk
 
+# import libraries for streamlit app 
+
 APP_DIR = Path(__file__).resolve().parent
 
 @st.cache_resource
@@ -238,6 +240,8 @@ def color_bin(x):
         return [255, 140, 0, 160]     # orange
     else:
         return [220, 20, 60, 160]     # red
+    
+    # defines the color bins for the heatmap
 
 df_map["fill_color"] = v.apply(color_bin)
 
@@ -249,7 +253,7 @@ layer = pdk.Layer(
     pickable=True,
     auto_highlight=True,
     get_fill_color="fill_color",
-)
+) # sets up the scatterplot layer for the heatmap
 
 view_state = pdk.ViewState(
     latitude=float(df_map["lat_bin"].mean()) if len(df_map) else 42.3601,
